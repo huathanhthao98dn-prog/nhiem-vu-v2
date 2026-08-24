@@ -778,6 +778,23 @@ let laVP = false; // true nếu tài khoản thuộc nhóm chu_so_huu / quan_tri
 let cnDangSua = null; // vị trí (trong danhSachLoc) nhiệm vụ đang mở ở modal Cập nhật
 let danhMucDonVi = []; // danh sách đơn vị đã biết, dùng cho ô lọc và form Thêm nhiệm vụ
 
+// Danh sách đơn vị chính thức của xã Bà Nà — dùng CỐ ĐỊNH cho ô tick chọn
+// "Đơn vị thực hiện" ở form Thêm nhiệm vụ mới (không lấy tự động theo dữ liệu
+// lịch sử nữa, vì dữ liệu cũ có nhiều tên viết tắt/không thống nhất). Ô lọc
+// "Đơn vị thực hiện" ngoài bảng (fl-don-vi) vẫn lấy theo danhMucDonVi như cũ,
+// không đổi, để lọc được cả các tên đơn vị cũ từng xuất hiện trong dữ liệu.
+const DON_VI_CHINH_THUC = [
+  'Văn phòng HĐND và UBND xã',
+  'Phòng Kinh tế',
+  'Phòng Văn hóa – Xã hội',
+  'Trung tâm Phục vụ hành chính công',
+  'Trung tâm Cung ứng dịch vụ sự nghiệp công',
+  'Công an xã',
+  'Ban Chỉ huy quân sự xã',
+  'Trạm Y tế xã',
+  'Ban Quản lý dự án đầu tư xây dựng xã',
+];
+
 // ===== TIỆN ÍCH =====
 function boDau(s) {
   return String(s||'').trim().toLowerCase()
@@ -1513,9 +1530,9 @@ function moThemMoi() {
       <div class="form-field">
         <label>Đơn vị thực hiện *</label>
         <div class="donvi-picker" id="tm-donVi-picker">
-          ${danhMucDonVi.length ? danhMucDonVi.map(dv => `
+          ${DON_VI_CHINH_THUC.map(dv => `
             <label class="donvi-item"><input type="checkbox" value="${wa_escAttr(dv)}"> ${wa_esc(dv)}</label>
-          `).join('') : '<span class="donvi-empty">Chưa có danh mục đơn vị — nhập ở ô bên dưới.</span>'}
+          `).join('')}
         </div>
         <input id="tm-donVi-khac" type="text" placeholder="Đơn vị khác (nếu chưa có ở trên, cách nhau dấu phẩy)" style="margin-top:6px">
       </div>
