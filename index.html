@@ -405,6 +405,54 @@
     display: none;
   }
 
+  /* ===== FORM (CẬP NHẬT / THÊM MỚI) — Sprint 2 ===== */
+  .form-section { margin-bottom: 18px; }
+  .form-section-title {
+    font-size: 13px; font-weight: 800; color: #174c78;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    margin-bottom: 10px; padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-field label { font-size: 12px; font-weight: 700; color: #475569; }
+  .form-field input, .form-field select, .form-field textarea {
+    padding: 9px 11px; border: 1.5px solid #e2e8f0; border-radius: 7px;
+    font-size: 13.5px; font-family: inherit; color: #1e293b; outline: none; background: #fff;
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: #174c78; }
+  .form-field textarea { resize: vertical; min-height: 64px; }
+  .form-hint { font-size: 11px; color: #94a3b8; margin-top: -6px; }
+  .btn-luu {
+    background: #174c78; color: #fff; border: none; border-radius: 8px;
+    padding: 11px 18px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .btn-luu:hover { background: #0f3657; }
+  .btn-luu:disabled { background: #94a3b8; cursor: not-allowed; }
+
+  .btn-cap-nhat-row {
+    padding: 5px 10px; border: 1px solid #16a34a; border-radius: 6px;
+    background: #fff; color: #16a34a; cursor: pointer; font-size: 12px; margin-left: 6px;
+  }
+
+  .xn-list { display: flex; flex-direction: column; gap: 10px; }
+  .xn-item {
+    border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  }
+  .xn-item .xn-donvi { font-weight: 700; font-size: 13px; color: #0f3657; }
+  .xn-item .xn-meta { font-size: 11.5px; color: #64748b; display: block; margin-top: 2px; }
+  .xn-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn-xac-nhan { background: #16a34a; color: #fff; border: none; border-radius: 6px; padding: 7px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+  .btn-tu-choi { background: #fff; color: #dc2626; border: 1px solid #dc2626; border-radius: 6px; padding: 7px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+  .btn-gui-de-nghi { background: #7c3aed; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .input-ly-do { padding: 7px 9px; border: 1px solid #d1d9e0; border-radius: 6px; font-size: 12.5px; min-width: 200px; }
+  .badge-mini { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .badge-mini-cho { background: #f3e8ff; color: #7c3aed; }
+  .badge-mini-ok { background: #dcfce7; color: #16a34a; }
+  .badge-mini-tuchoi { background: #fee2e2; color: #dc2626; }
+
   @media (max-width: 768px) {
     .kpi-grid { grid-template-columns: repeat(4, 1fr); }
     .dn-photo { display: none; }
@@ -549,7 +597,7 @@
         <input class="filter-input" id="fl-tu-khoa" placeholder="Nhập nội dung, số văn bản, đơn vị..." oninput="apDungLoc()">
       </div>
       <div class="filter-row">
-        <button class="btn-action btn-them" id="btn-them" onclick="alert('Tính năng thêm mới sẽ có ở Sprint 2')">+ Thêm nhiệm vụ</button>
+        <button class="btn-action btn-them" id="btn-them" onclick="moThemMoi()">+ Thêm nhiệm vụ</button>
         <button class="btn-action btn-quan-trong" id="btn-qt" onclick="toggleQuanTrong()">☆ Quan trọng</button>
         <button class="btn-action btn-xoa" onclick="xoaLoc()">Xóa bộ lọc</button>
         <button class="btn-action btn-lam-moi" onclick="lamMoi()">⟳ Cập nhật dữ liệu</button>
@@ -616,6 +664,36 @@
   </div>
 </div>
 
+<!-- MODAL CẬP NHẬT NHIỆM VỤ -->
+<div class="modal-overlay" id="modal-cn">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="cn-title">Cập nhật nhiệm vụ</h3>
+      <button class="btn-close" onclick="dongCapNhat()">×</button>
+    </div>
+    <div class="modal-body" id="cn-body"></div>
+    <div class="modal-footer">
+      <button class="btn-dong" onclick="dongCapNhat()">Đóng</button>
+      <button class="btn-luu" id="cn-btn-luu" onclick="luuCapNhat()">💾 Lưu cập nhật</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL THÊM NHIỆM VỤ MỚI -->
+<div class="modal-overlay" id="modal-them">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">+ Thêm nhiệm vụ mới</h3>
+      <button class="btn-close" onclick="dongThemMoi()">×</button>
+    </div>
+    <div class="modal-body" id="them-body"></div>
+    <div class="modal-footer">
+      <button class="btn-dong" onclick="dongThemMoi()">Đóng</button>
+      <button class="btn-luu" id="them-btn-luu" onclick="luuThemMoi()">💾 Lưu nhiệm vụ</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST & LOADING -->
 <div class="toast" id="toast"></div>
 <div class="loading-bar" id="loading">Đang tải dữ liệu...</div>
@@ -630,6 +708,8 @@ let trang = 1;
 let soDong = 100;
 let kpiFilter = 'tatCa';
 let ganSaoFilter = false;
+let laVP = false; // true nếu tài khoản thuộc nhóm chu_so_huu / quan_tri / van_phong
+let cnDangSua = null; // vị trí (trong danhSachLoc) nhiệm vụ đang mở ở modal Cập nhật
 
 // ===== TIỆN ÍCH =====
 function boDau(s) {
@@ -652,6 +732,20 @@ function setLoading(show) {
 async function goiAPI(action, payload={}) {
   const params = new URLSearchParams({ action, payload: JSON.stringify(payload) });
   const res = await fetch(`${API}?${params}`, { method: 'GET' });
+  if (!res.ok) throw new Error('Lỗi kết nối máy chủ');
+  return res.json();
+}
+
+// Dùng POST cho các thao tác ghi dữ liệu (Sprint 2) — nội dung như giải trình,
+// tự đánh giá... có thể dài, GET dễ bị cắt bớt do giới hạn độ dài URL.
+// Cố ý KHÔNG đặt header Content-Type: application/json để trình duyệt gửi
+// dạng "simple request" (text/plain), tránh preflight OPTIONS mà Apps Script
+// Web App không xử lý được — doPost() vẫn đọc đúng vì chỉ cần e.postData.contents.
+async function postAPI(action, payload={}) {
+  const res = await fetch(API, {
+    method: 'POST',
+    body: JSON.stringify({ action, payload }),
+  });
   if (!res.ok) throw new Error('Lỗi kết nối máy chủ');
   return res.json();
 }
@@ -740,7 +834,8 @@ async function khoiTaoDashboard(data) {
 
   // Quyền
   const vt = boDau(nguoiDung.vaiTro || '');
-  const laVP = vt === 'chu so huu' || vt === 'quan_tri' || vt === 'van_phong';
+  // Sửa lỗi Sprint 1: mã vai trò dùng gạch dưới ("chu_so_huu"), không phải khoảng trắng.
+  laVP = vt === 'chu_so_huu' || vt === 'quan_tri' || vt === 'van_phong';
   if (!laVP) document.getElementById('btn-them').style.display = 'none';
 
   capNhatDuLieu(data);
@@ -927,9 +1022,11 @@ function hienThiBang() {
     const saoHtml = nv.ganSao ? '★' : '☆';
     const saoStyle = nv.ganSao ? 'color:#d97706' : 'color:#d1d9e0';
 
+    const coTheCapNhat = nv.duocCapNhat || nv.duocXacNhan;
+
     tbody.innerHTML += `
       <tr onclick="xemChiTiet(${batDau+idx})">
-        <td class="col-sao" style="${saoStyle}" onclick="event.stopPropagation()">${saoHtml}</td>
+        <td class="col-sao" style="${saoStyle}" onclick="event.stopPropagation();toggleSaoBang(${batDau+idx})">${saoHtml}</td>
         <td><span class="ma-nv">${nv.maNhiemVu||'—'}</span></td>
         <td>${nv.loaiNhiemVu||'—'}</td>
         <td>${nv.nguonGiao||'—'}</td>
@@ -945,7 +1042,10 @@ function hienThiBang() {
         </td>
         <td>${nv.chuyenVien||'—'}</td>
         <td>${nv.lanhDao||'—'}</td>
-        <td><button style="padding:5px 10px;border:1px solid #174c78;border-radius:6px;background:#fff;color:#174c78;cursor:pointer;font-size:12px" onclick="event.stopPropagation();xemChiTiet(${batDau+idx})">Xem</button></td>
+        <td style="white-space:nowrap">
+          <button style="padding:5px 10px;border:1px solid #174c78;border-radius:6px;background:#fff;color:#174c78;cursor:pointer;font-size:12px" onclick="event.stopPropagation();xemChiTiet(${batDau+idx})">Xem</button>
+          ${coTheCapNhat ? `<button class="btn-cap-nhat-row" onclick="event.stopPropagation();moCapNhat(${batDau+idx})">Cập nhật</button>` : ''}
+        </td>
       </tr>`;
   });
 }
@@ -1017,6 +1117,409 @@ document.getElementById('modal-ct').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-ct')) dongModal();
 });
 
+// ===================================================================
+// SPRINT 2 — cập nhật tiến độ, xác nhận/từ chối, thêm nhiệm vụ, gắn sao
+// ===================================================================
+
+function wa_esc(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function wa_escAttr(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function valOf(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+function coCungDonVi(a, b) {
+  const x = boDau(a || ''), y = boDau(b || '');
+  if (!x || !y) return false;
+  return x === y || x.includes(y) || y.includes(x);
+}
+// Tìm đề nghị xác nhận mới nhất của MỘT đơn vị cụ thể trong danh sách của nhiệm vụ.
+function timEntryDonVi(nv, donVi) {
+  const ds = (nv.danhSachXacNhanDonVi || []).filter(x => coCungDonVi(x.donVi, donVi));
+  if (!ds.length) return null;
+  return ds.reduce((a, b) => (new Date(b.ngayDeNghi) > new Date(a.ngayDeNghi) ? b : a));
+}
+// Gộp trạng thái xác nhận toàn nhiệm vụ từ danh sách theo đơn vị — cùng quy tắc
+// wa_docXacNhan_ dùng ở Apps Script, để KPI/badge phía trình duyệt khớp với server.
+function tinhTrangThaiXacNhanTongHop(ds) {
+  let kq = '';
+  (ds || []).forEach(x => {
+    if (x.trangThai === 'Chờ xác nhận') kq = 'Chờ xác nhận';
+    else if (x.trangThai === 'Đã xác nhận' && kq !== 'Chờ xác nhận') kq = 'Đã xác nhận';
+  });
+  return kq;
+}
+
+// ----- GẮN SAO (bấm trực tiếp ở bảng) -----
+async function toggleSaoBang(idx) {
+  const nv = danhSachLoc[idx];
+  if (!nv) return;
+  if (!nv.duocGanSao) { hienToast('Bạn không có quyền gắn sao.', true); return; }
+  const moi = !nv.ganSao;
+  try {
+    const kq = await postAPI('ganSao', { maNhiemVu: nv.maNhiemVu, ganSao: moi, email: nguoiDung.tenDangNhap });
+    if (kq?.thanhCong) {
+      nv.ganSao = moi; // nv là cùng tham chiếu object với phần tử trong danhSachGoc
+      hienThiBang();
+      hienToast(moi ? 'Đã gắn sao.' : 'Đã bỏ sao.');
+    } else hienToast(kq?.thongBao || 'Không thể cập nhật.', true);
+  } catch { hienToast('Không thể kết nối máy chủ.', true); }
+}
+
+// ----- MODAL CẬP NHẬT (tiến độ + xác nhận hoàn thành) -----
+function moCapNhat(idx) {
+  const nv = danhSachLoc[idx];
+  if (!nv) return;
+  cnDangSua = idx;
+  document.getElementById('cn-title').textContent = `Cập nhật · ${nv.maNhiemVu}`;
+
+  // Lưu ý: field "laVanPhong" server trả về thực chất là "có quyền xác nhận"
+  // (áp dụng cho quan_tri, van_phong VÀ lanh_dao) — không chỉ riêng Văn phòng.
+  const coQuyenXacNhan = !!nv.laVanPhong;
+
+  let html = `<div style="margin-bottom:14px;color:#475569;font-size:13px">
+    <b>${wa_esc(nv.nhiemVu)}</b><br>
+    Đơn vị thực hiện: ${wa_esc(nv.donViThucHien)||'—'} · Thời hạn: ${wa_esc(nv.thoiHan)||'—'}
+  </div>`;
+
+  if (nv.duocCapNhat) {
+    html += `
+      <div class="form-section">
+        <div class="form-section-title">Tiến độ thực hiện</div>
+        <div class="form-row full"><div class="form-field">
+          <label>Tiến độ thực hiện</label>
+          <textarea id="cn-tienDo">${wa_esc(nv.tienDo)}</textarea>
+        </div></div>
+        <div class="form-row full"><div class="form-field">
+          <label>Tự đánh giá</label>
+          <textarea id="cn-tuDanhGia">${wa_esc(nv.tuDanhGia)}</textarea>
+        </div></div>
+        <div class="form-row full"><div class="form-field">
+          <label>Giải trình</label>
+          <textarea id="cn-giaiTrinh">${wa_esc(nv.giaiTrinh)}</textarea>
+        </div></div>
+        <div class="form-row full"><div class="form-field">
+          <label>Link minh chứng</label>
+          <input id="cn-linkMinhChung" type="text" value="${wa_escAttr(nv.linkMinhChung)}" placeholder="https://...">
+        </div></div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Chuyên viên phụ trách</label>
+            <input id="cn-chuyenVien" type="text" value="${wa_escAttr(nv.chuyenVien)}">
+          </div>
+          ${coQuyenXacNhan ? `<div class="form-field">
+            <label>Người theo dõi</label>
+            <input id="cn-nguoiTheoDoi" type="text" value="${wa_escAttr(nv.nguoiTheoDoi)}">
+          </div>` : '<div></div>'}
+        </div>
+        ${coQuyenXacNhan ? `
+        <div class="form-row">
+          <div class="form-field">
+            <label>Lãnh đạo phụ trách</label>
+            <input id="cn-lanhDao" type="text" value="${wa_escAttr(nv.lanhDao)}">
+          </div>
+          <div class="form-field">
+            <label>Kết quả/Tình trạng</label>
+            <select id="cn-tinhTrang">
+              ${['Chưa thực hiện','Đang thực hiện','Hoàn thành','Không thực hiện','Tạm dừng/Hủy']
+                .map(tt => `<option ${nv.tinhTrang === tt ? 'selected' : ''}>${tt}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-row full"><div class="form-field">
+          <label>Xác nhận/Đánh giá (của Văn phòng)</label>
+          <textarea id="cn-xacNhan">${wa_esc(nv.xacNhan)}</textarea>
+        </div></div>` : ''}
+        <p class="form-hint">Tình trạng chọn "Đang thực hiện" sẽ vẫn tự cập nhật lại theo hạn (Sắp đến hạn/Trễ hạn...) ở lần tải sau, trừ khi chọn Hoàn thành / Không thực hiện / Tạm dừng.</p>
+      </div>`;
+  } else {
+    html += `<p style="color:#64748b;font-size:13px">Bạn không có quyền cập nhật tiến độ nhiệm vụ này.</p>`;
+  }
+
+  // ----- Khu vực xác nhận hoàn thành -----
+  html += `<div class="form-section"><div class="form-section-title">Xác nhận hoàn thành</div>`;
+  if (coQuyenXacNhan) {
+    const dsChoXN = (nv.danhSachXacNhanDonVi || []).filter(x => x.trangThai === 'Chờ xác nhận');
+    if (!dsChoXN.length) {
+      html += `<p style="color:#64748b;font-size:13px">Hiện không có đơn vị nào đang chờ xác nhận cho nhiệm vụ này.</p>`;
+    } else {
+      html += `<div class="xn-list">` + dsChoXN.map((x, i) => `
+        <div class="xn-item">
+          <div>
+            <span class="xn-donvi">${wa_esc(x.donVi)}</span>
+            <span class="badge-mini badge-mini-cho" style="margin-left:6px">Chờ xác nhận</span>
+            <span class="xn-meta">Đề nghị bởi ${wa_esc(x.nguoiDeNghi)||'—'} · ${wa_esc(x.ngayDeNghi)||''}</span>
+          </div>
+          <div class="xn-actions">
+            <input class="input-ly-do" id="cn-lydo-${i}" placeholder="Ghi chú xác nhận / lý do từ chối">
+            <button class="btn-xac-nhan" onclick="xuLyXacNhan(${i})">✅ Xác nhận</button>
+            <button class="btn-tu-choi" onclick="xuLyTuChoi(${i})">❌ Từ chối</button>
+          </div>
+        </div>`).join('') + `</div>`;
+    }
+    const dsKhac = (nv.danhSachXacNhanDonVi || []).filter(x => x.trangThai !== 'Chờ xác nhận');
+    if (dsKhac.length) {
+      html += `<div class="xn-list" style="margin-top:10px">` + dsKhac.map(x => `
+        <div class="xn-item">
+          <div>
+            <span class="xn-donvi">${wa_esc(x.donVi)}</span>
+            <span class="badge-mini ${x.trangThai === 'Đã xác nhận' ? 'badge-mini-ok' : 'badge-mini-tuchoi'}" style="margin-left:6px">${wa_esc(x.trangThai)}</span>
+            ${x.lyDo ? `<span class="xn-meta">Lý do: ${wa_esc(x.lyDo)}</span>` : ''}
+          </div>
+        </div>`).join('') + `</div>`;
+    }
+  } else if (nv.duocCapNhat) {
+    const donViToi = (nguoiDung.donVi || '').trim();
+    const entry = timEntryDonVi(nv, donViToi);
+    if (!entry || entry.trangThai === 'Từ chối') {
+      if (entry && entry.trangThai === 'Từ chối') {
+        html += `<p style="color:#dc2626;font-size:13px;margin-bottom:8px">Đề nghị trước đã bị Văn phòng từ chối${entry.lyDo ? ': ' + wa_esc(entry.lyDo) : ''}.</p>`;
+      }
+      html += `<button class="btn-gui-de-nghi" onclick="guiDeNghi()">📤 Gửi đề nghị xác nhận hoàn thành</button>`;
+    } else if (entry.trangThai === 'Chờ xác nhận') {
+      html += `<p style="color:#7c3aed;font-size:13px">Đã gửi đề nghị, đang chờ Văn phòng xử lý.</p>`;
+    } else if (entry.trangThai === 'Đã xác nhận') {
+      html += `<p style="color:#16a34a;font-size:13px">✓ Đơn vị của bạn đã được xác nhận hoàn thành.</p>`;
+    }
+  } else {
+    html += `<p style="color:#64748b;font-size:13px">Không áp dụng cho tài khoản này.</p>`;
+  }
+  html += `</div>`;
+
+  document.getElementById('cn-body').innerHTML = html;
+  document.getElementById('cn-btn-luu').style.display = nv.duocCapNhat ? 'inline-block' : 'none';
+  document.getElementById('modal-cn').classList.add('open');
+}
+
+function dongCapNhat() {
+  document.getElementById('modal-cn').classList.remove('open');
+  cnDangSua = null;
+}
+
+async function luuCapNhat() {
+  const nv = danhSachLoc[cnDangSua];
+  if (!nv || !nv.duocCapNhat) return;
+  const btn = document.getElementById('cn-btn-luu');
+  btn.disabled = true; btn.textContent = 'Đang lưu…';
+
+  const payload = {
+    maNhiemVu: nv.maNhiemVu,
+    emailNguoiDung: nguoiDung.tenDangNhap,
+    nguoiCapNhat: nguoiDung.hoTen,
+    tienDo: valOf('cn-tienDo'),
+    tuDanhGia: valOf('cn-tuDanhGia'),
+    giaiTrinh: valOf('cn-giaiTrinh'),
+    linkMinhChung: valOf('cn-linkMinhChung'),
+    chuyenVien: valOf('cn-chuyenVien'),
+  };
+  if (nv.laVanPhong) {
+    Object.assign(payload, {
+      nguoiTheoDoi: valOf('cn-nguoiTheoDoi'),
+      lanhDao: valOf('cn-lanhDao'),
+      tinhTrang: valOf('cn-tinhTrang'),
+      xacNhan: valOf('cn-xacNhan'),
+    });
+  }
+
+  try {
+    const kq = await postAPI('capNhat', payload);
+    if (kq?.thanhCong) {
+      Object.assign(nv, {
+        tienDo: payload.tienDo, tuDanhGia: payload.tuDanhGia, giaiTrinh: payload.giaiTrinh,
+        linkMinhChung: payload.linkMinhChung, chuyenVien: payload.chuyenVien,
+      });
+      if (nv.laVanPhong) Object.assign(nv, {
+        nguoiTheoDoi: payload.nguoiTheoDoi, lanhDao: payload.lanhDao,
+        tinhTrang: payload.tinhTrang, xacNhan: payload.xacNhan,
+      });
+      nv.tinhTrangThucTe = tinhTinhTrang(nv);
+      hienToast('Đã lưu cập nhật nhiệm vụ ' + nv.maNhiemVu + '.');
+      dongCapNhat();
+      capNhatKPI();
+      hienThiBang();
+    } else hienToast(kq?.thongBao || 'Không thể lưu cập nhật.', true);
+  } catch { hienToast('Không thể kết nối máy chủ.', true); }
+  finally { btn.disabled = false; btn.textContent = '💾 Lưu cập nhật'; }
+}
+
+// ----- Đơn vị gửi đề nghị xác nhận hoàn thành -----
+async function guiDeNghi() {
+  const nv = danhSachLoc[cnDangSua];
+  if (!nv) return;
+  try {
+    const kq = await postAPI('deNghi', {
+      maNhiemVu: nv.maNhiemVu,
+      email: nguoiDung.tenDangNhap,
+      nguoi: nguoiDung.hoTen,
+      donVi: nguoiDung.donVi,
+    });
+    if (kq?.thanhCong) {
+      const now = new Date().toISOString();
+      const entry = timEntryDonVi(nv, nguoiDung.donVi);
+      if (entry) { entry.trangThai = 'Chờ xác nhận'; entry.ngayDeNghi = now; entry.nguoiDeNghi = nguoiDung.hoTen; entry.lyDo = ''; }
+      else {
+        nv.danhSachXacNhanDonVi = nv.danhSachXacNhanDonVi || [];
+        nv.danhSachXacNhanDonVi.push({ donVi: nguoiDung.donVi, trangThai: 'Chờ xác nhận', ngayDeNghi: now, nguoiDeNghi: nguoiDung.hoTen });
+      }
+      nv.trangThaiDeNghi = 'Chờ xác nhận';
+      nv.trangThaiXacNhan = tinhTrangThaiXacNhanTongHop(nv.danhSachXacNhanDonVi);
+      hienToast(kq.thongBao || 'Đã gửi đề nghị xác nhận.');
+      moCapNhat(cnDangSua);
+      capNhatKPI();
+      hienThiBang();
+    } else hienToast(kq?.thongBao || 'Không thể gửi đề nghị.', true);
+  } catch { hienToast('Không thể kết nối máy chủ.', true); }
+}
+
+// ----- Văn phòng xác nhận -----
+async function xuLyXacNhan(i) {
+  const nv = danhSachLoc[cnDangSua];
+  if (!nv) return;
+  const dsChoXN = (nv.danhSachXacNhanDonVi || []).filter(x => x.trangThai === 'Chờ xác nhận');
+  const entry = dsChoXN[i];
+  if (!entry) return;
+  const ghiChu = valOf('cn-lydo-' + i);
+  try {
+    const kq = await postAPI('xacNhan', { maNhiemVu: nv.maNhiemVu, noiDung: ghiChu, donVi: entry.donVi });
+    if (kq?.thanhCong) {
+      entry.trangThai = 'Đã xác nhận';
+      entry.noiDung = ghiChu;
+      entry.ngayXacNhan = new Date().toISOString();
+      entry.nguoiXacNhan = nguoiDung.hoTen;
+      nv.trangThaiXacNhan = tinhTrangThaiXacNhanTongHop(nv.danhSachXacNhanDonVi);
+      if (kq.tatCaHoanThanh) { nv.tinhTrang = 'Hoàn thành'; nv.trangThaiDeNghi = ''; nv.tinhTrangThucTe = tinhTinhTrang(nv); }
+      hienToast(kq.thongBao || 'Đã xác nhận.');
+      moCapNhat(cnDangSua);
+      capNhatKPI();
+      hienThiBang();
+    } else hienToast(kq?.thongBao || 'Không thể xác nhận.', true);
+  } catch { hienToast('Không thể kết nối máy chủ.', true); }
+}
+
+// ----- Văn phòng từ chối -----
+async function xuLyTuChoi(i) {
+  const nv = danhSachLoc[cnDangSua];
+  if (!nv) return;
+  const dsChoXN = (nv.danhSachXacNhanDonVi || []).filter(x => x.trangThai === 'Chờ xác nhận');
+  const entry = dsChoXN[i];
+  if (!entry) return;
+  const lyDo = valOf('cn-lydo-' + i);
+  if (!lyDo) { hienToast('Vui lòng nhập lý do từ chối.', true); return; }
+  try {
+    const kq = await postAPI('tuChoi', { maNhiemVu: nv.maNhiemVu, email: nguoiDung.tenDangNhap, lyDo, donVi: entry.donVi });
+    if (kq?.thanhCong) {
+      entry.trangThai = 'Từ chối';
+      entry.lyDo = lyDo;
+      entry.ngayXacNhan = new Date().toISOString();
+      entry.nguoiXacNhan = nguoiDung.hoTen;
+      nv.trangThaiXacNhan = tinhTrangThaiXacNhanTongHop(nv.danhSachXacNhanDonVi);
+      nv.trangThaiDeNghi = '';
+      hienToast(kq.thongBao || 'Đã từ chối.');
+      moCapNhat(cnDangSua);
+      capNhatKPI();
+      hienThiBang();
+    } else hienToast(kq?.thongBao || 'Không thể từ chối.', true);
+  } catch { hienToast('Không thể kết nối máy chủ.', true); }
+}
+
+// ----- MODAL THÊM NHIỆM VỤ MỚI (chỉ laVP) -----
+function moThemMoi() {
+  document.getElementById('them-body').innerHTML = `
+    <div class="form-row">
+      <div class="form-field"><label>Loại nhiệm vụ</label><input id="tm-loai" type="text" placeholder="VD: Nhiệm vụ thường xuyên"></div>
+      <div class="form-field"><label>Nguồn giao</label><input id="tm-nguon" type="text"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Đơn vị thực hiện *</label><input id="tm-donVi" type="text" placeholder="Nhiều đơn vị cách nhau dấu phẩy"></div>
+      <div class="form-field"><label>Đơn vị/Cơ quan phối hợp</label><input id="tm-phoiHop" type="text"></div>
+    </div>
+    <div class="form-row full"><div class="form-field">
+      <label>Nội dung nhiệm vụ *</label>
+      <textarea id="tm-noiDung"></textarea>
+    </div></div>
+    <div class="form-row">
+      <div class="form-field"><label>Văn bản/Số ký hiệu</label><input id="tm-vanBan" type="text"></div>
+      <div class="form-field"><label>Ngày đến văn bản</label><input id="tm-ngayDenVanBan" type="date"></div>
+    </div>
+    <div class="form-row full"><div class="form-field">
+      <label>Chỉ đạo/Giao nhiệm vụ</label>
+      <textarea id="tm-chiDao"></textarea>
+    </div></div>
+    <div class="form-row">
+      <div class="form-field"><label>Thời hạn *</label><input id="tm-thoiHan" type="date"></div>
+      <div class="form-field"><label>Chuyên viên phụ trách</label><input id="tm-chuyenVien" type="text"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Lãnh đạo phụ trách</label><input id="tm-lanhDao" type="text"></div>
+      <div class="form-field" style="flex-direction:row;align-items:center;gap:8px;margin-top:22px">
+        <label style="margin:0;display:flex;align-items:center;gap:6px"><input id="tm-ganSao" type="checkbox" style="width:auto"> Gắn sao quan trọng</label>
+      </div>
+    </div>
+    <p class="form-hint">Tình trạng nhiệm vụ mới sẽ tự tính theo thời hạn, không cần chọn tay.</p>
+  `;
+  document.getElementById('modal-them').classList.add('open');
+}
+
+function dongThemMoi() {
+  document.getElementById('modal-them').classList.remove('open');
+}
+
+async function luuThemMoi() {
+  const donVi = valOf('tm-donVi');
+  const noiDung = valOf('tm-noiDung');
+  const thoiHan = valOf('tm-thoiHan');
+  if (!donVi || !noiDung || !thoiHan) {
+    hienToast('Vui lòng nhập đủ Đơn vị thực hiện, Nội dung nhiệm vụ và Thời hạn.', true);
+    return;
+  }
+  const btn = document.getElementById('them-btn-luu');
+  btn.disabled = true; btn.textContent = 'Đang lưu…';
+
+  const payload = {
+    loai: valOf('tm-loai'), donVi, nguon: valOf('tm-nguon'),
+    vanBan: valOf('tm-vanBan'), noiDung, thoiHan,
+    chuyenVien: valOf('tm-chuyenVien'), lanhDao: valOf('tm-lanhDao'),
+    phoiHop: valOf('tm-phoiHop'), chiDao: valOf('tm-chiDao'),
+    ganSao: document.getElementById('tm-ganSao').checked,
+    ngayDenVanBan: valOf('tm-ngayDenVanBan'),
+  };
+
+  try {
+    const kq = await postAPI('themNhiemVu', payload);
+    if (kq?.thanhCong) {
+      // Vá cục bộ thay vì gọi lại lamMoi(): themNhiemVu không xoá cache 6 giờ
+      // phía Apps Script, nên tải lại ngay có thể vẫn thấy dữ liệu cũ.
+      const nvMoi = {
+        maNhiemVu: kq.ma, loaiNhiemVu: payload.loai, nguonGiao: payload.nguon,
+        donViThucHien: payload.donVi, nhiemVu: payload.noiDung, vanBan: payload.vanBan,
+        donViLienQuan: payload.phoiHop, chiDao: payload.chiDao, thoiHan: payload.thoiHan,
+        tienDo: '0%', tuDanhGia: '', xacNhan: '', tinhTrang: 'Chưa thực hiện',
+        chuyenVien: payload.chuyenVien, nguoiTheoDoi: nguoiDung.tenDangNhap, lanhDao: payload.lanhDao,
+        giaiTrinh: '', linkMinhChung: '', nguoiCapNhatCuoi: '', ngayCapNhatCuoi: '',
+        ngayDenVanBan: payload.ngayDenVanBan, ganSao: payload.ganSao,
+        trangThaiDeNghi: '', trangThaiXacNhan: '', danhSachXacNhanDonVi: [],
+        duocCapNhat: true, duocXacNhan: laVP, duocGanSao: laVP, laVanPhong: laVP,
+      };
+      nvMoi.tinhTrangThucTe = tinhTinhTrang(nvMoi);
+      danhSachGoc.unshift(nvMoi);
+      hienToast('Đã thêm nhiệm vụ ' + kq.ma + '.');
+      dongThemMoi();
+      apDungLoc();
+    } else hienToast(kq?.thongBao || 'Không thể thêm nhiệm vụ.', true);
+  } catch { hienToast('Không thể kết nối máy chủ.', true); }
+  finally { btn.disabled = false; btn.textContent = '💾 Lưu nhiệm vụ'; }
+}
+
+document.getElementById('modal-cn').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-cn')) dongCapNhat();
+});
+document.getElementById('modal-them').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-them')) dongThemMoi();
+});
+
 // ===== XUẤT EXCEL =====
 async function xuatExcel() {
   if (!danhSachLoc.length) { hienToast('Không có dữ liệu để xuất.', true); return; }
@@ -1041,9 +1544,12 @@ function dangXuat() {
   document.getElementById('trang-dang-nhap').style.display = 'flex';
 }
 
-// Phím ESC đóng modal
+// Phím ESC đóng modal đang mở (bất kỳ trong 3 modal)
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') dongModal();
+  if (e.key !== 'Escape') return;
+  dongModal();
+  dongCapNhat();
+  dongThemMoi();
 });
 </script>
 </body>
