@@ -834,8 +834,9 @@ async function khoiTaoDashboard(data) {
 
   // Quyền
   const vt = boDau(nguoiDung.vaiTro || '');
-  // Sửa lỗi Sprint 1: mã vai trò dùng gạch dưới ("chu_so_huu"), không phải khoảng trắng.
-  laVP = vt === 'chu_so_huu' || vt === 'quan_tri' || vt === 'van_phong';
+  // nguoiDung.vaiTro là nhãn tiếng Việt có dấu do máy chủ trả về (vd "Chủ sở hữu"),
+  // sau khi boDau() bỏ dấu + viết thường sẽ có dạng "chu so huu" (cách nhau bằng khoảng trắng).
+  laVP = vt === 'chu so huu' || vt === 'quan tri' || vt === 'van phong';
   if (!laVP) document.getElementById('btn-them').style.display = 'none';
 
   capNhatDuLieu(data);
