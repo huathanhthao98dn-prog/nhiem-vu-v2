@@ -1735,7 +1735,14 @@ function moThemMoi() {
       <div class="form-field"><label>Chuyên viên phụ trách</label><input id="tm-chuyenVien" type="text"></div>
     </div>
     <div class="form-row">
-      <div class="form-field"><label>Lãnh đạo phụ trách</label><input id="tm-lanhDao" type="text"></div>
+      <div class="form-field">
+        <label>Lãnh đạo phụ trách</label>
+        <select id="tm-lanhDao">
+          <option value="">-- Chọn lãnh đạo --</option>
+          ${['CT, các PCT','Đ/c Lê Minh Tuấn','Đ/c Lê Đức Trí','Đ/c Nguyễn Tấn Phát']
+            .map(l => `<option>${l}</option>`).join('')}
+        </select>
+      </div>
       <div class="form-field" style="flex-direction:row;align-items:center;gap:8px;margin-top:22px">
         <label style="margin:0;display:flex;align-items:center;gap:6px"><input id="tm-ganSao" type="checkbox" style="width:auto"> Gắn sao quan trọng</label>
       </div>
