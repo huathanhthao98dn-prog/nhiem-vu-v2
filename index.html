@@ -917,9 +917,12 @@ async function khoiTaoDashboard(data) {
   document.getElementById('db-vai-tro').textContent = [nguoiDung.vaiTro, nguoiDung.donVi].filter(Boolean).join(' · ');
 
   // Quyền
-  const vt = boDau(nguoiDung.vaiTro || '');
-  // nguoiDung.vaiTro là nhãn tiếng Việt có dấu do máy chủ trả về (vd "Chủ sở hữu"),
-  // sau khi boDau() bỏ dấu + viết thường sẽ có dạng "chu so huu" (cách nhau bằng khoảng trắng).
+  // nguoiDung.vaiTro có thể là nhãn tiếng Việt có dấu (vd "Chủ sở hữu") hoặc mã
+  // dạng gạch dưới không dấu (vd "van_phong", "phong_ban" — thấy trong sheet NGUOI_DUNG).
+  // Chuẩn hóa cả 2 kiểu về cùng dạng "cách nhau bằng khoảng trắng" trước khi so khớp,
+  // để không bỏ sót tài khoản dùng mã gạch dưới (đây là lý do nút "+ Thêm nhiệm vụ"
+  // từng bị ẩn với tài khoản Văn phòng dùng vai trò "van_phong").
+  const vt = boDau(nguoiDung.vaiTro || '').replace(/_/g, ' ');
   laVP = vt === 'chu so huu' || vt === 'quan tri' || vt === 'van phong';
   if (!laVP) document.getElementById('btn-them').style.display = 'none';
 
