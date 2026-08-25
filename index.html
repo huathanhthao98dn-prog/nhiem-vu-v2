@@ -264,7 +264,8 @@
     border-bottom: 1px solid #e2e8f0;
     font-size: 13px; color: #64748b;
   }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table { table-layout: fixed; width: auto; border-collapse: collapse; font-size: 13px; }
+  td, th { overflow-wrap: break-word; }
   th {
     background: #174c78; color: #fff;
     padding: 11px 10px; text-align: left;
@@ -682,6 +683,22 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       </div>
       <div style="overflow-x:auto">
         <table>
+          <colgroup>
+            <col style="width:32px">
+            <col style="width:46px">
+            <col style="width:110px">
+            <col style="width:90px">
+            <col style="width:110px">
+            <col style="width:130px">
+            <col style="width:300px">
+            <col style="width:140px">
+            <col style="width:88px">
+            <col style="width:110px">
+            <col style="width:120px">
+            <col style="width:100px">
+            <col style="width:110px">
+            <col style="width:170px">
+          </colgroup>
           <thead>
             <tr>
               <th class="col-sao">★</th>
@@ -690,7 +707,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
               <th>Loại</th>
               <th>Nguồn giao</th>
               <th>Đơn vị thực hiện</th>
-              <th style="min-width:300px">Nhiệm vụ</th>
+              <th>Nhiệm vụ</th>
               <th>Văn bản/Số KH</th>
               <th class="col-thoihan">Thời hạn</th>
               <th>Tiến độ</th>
