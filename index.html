@@ -307,6 +307,7 @@
   .col-sao { width: 32px; text-align: center; cursor: pointer; font-size: 16px; }
   .col-sao:hover { color: #d97706; }
   .col-stt { width: 46px; text-align: center; color: #64748b; }
+  .col-thoihan { width: 88px; white-space: nowrap; }
 
   /* PHÂN TRANG */
   .pagination {
@@ -691,7 +692,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
               <th>Đơn vị thực hiện</th>
               <th style="min-width:300px">Nhiệm vụ</th>
               <th>Văn bản/Số KH</th>
-              <th>Thời hạn</th>
+              <th class="col-thoihan">Thời hạn</th>
               <th>Tiến độ</th>
               <th>Tình trạng</th>
               <th>Chuyên viên</th>
@@ -1172,7 +1173,7 @@ function hienThiBang() {
         <td>${nv.donViThucHien||'—'}</td>
         <td style="max-width:350px">${nv.nhiemVu||'—'}</td>
         <td>${nv.vanBan||'—'}</td>
-        <td style="white-space:nowrap">${nv.thoiHan||'—'}</td>
+        <td class="col-thoihan">${nv.thoiHan||'—'}</td>
         <td>${nv.tienDo||'—'}</td>
         <td>
           <span class="badge ${badgeClass}">${tt}</span>
