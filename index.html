@@ -306,6 +306,7 @@
   }
   .col-sao { width: 32px; text-align: center; cursor: pointer; font-size: 16px; }
   .col-sao:hover { color: #d97706; }
+  .col-stt { width: 46px; text-align: center; color: #64748b; }
 
   /* PHÂN TRANG */
   .pagination {
@@ -683,7 +684,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           <thead>
             <tr>
               <th class="col-sao">★</th>
-              <th>STT</th>
+              <th class="col-stt">STT</th>
               <th>Mã nhiệm vụ</th>
               <th>Loại</th>
               <th>Nguồn giao</th>
@@ -1164,7 +1165,7 @@ function hienThiBang() {
     tbody.innerHTML += `
       <tr onclick="xemChiTiet(${batDau+idx})">
         <td class="col-sao" style="${saoStyle}" onclick="event.stopPropagation();toggleSaoBang(${batDau+idx})">${saoHtml}</td>
-        <td style="color:#64748b">${batDau+idx+1}</td>
+        <td class="col-stt">${batDau+idx+1}</td>
         <td><span class="ma-nv">${nv.maNhiemVu||'—'}</span></td>
         <td>${nv.loaiNhiemVu||'—'}</td>
         <td>${nv.nguonGiao||'—'}</td>
