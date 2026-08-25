@@ -1526,7 +1526,15 @@ async function xuLyTuChoi(i) {
 function moThemMoi() {
   document.getElementById('them-body').innerHTML = `
     <div class="form-row">
-      <div class="form-field"><label>Loại nhiệm vụ</label><input id="tm-loai" type="text" placeholder="VD: Nhiệm vụ thường xuyên"></div>
+      <div class="form-field"><label>Loại nhiệm vụ</label>
+        <select id="tm-loai">
+          <option value="">-- Chọn loại nhiệm vụ --</option>
+          <option>Nhiệm vụ thường xuyên</option>
+          <option>Nhiệm vụ theo Kế hoạch</option>
+          <option>Nhiệm vụ thành phố</option>
+          <option>TBKL Đảng ủy</option>
+        </select>
+      </div>
       <div class="form-field"><label>Nguồn giao</label><input id="tm-nguon" type="text"></div>
     </div>
     <div class="form-row">
