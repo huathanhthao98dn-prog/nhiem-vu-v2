@@ -1842,11 +1842,32 @@ async function xuatExcel() {
   hienToast(`Đã xuất ${danhSachLoc.length} nhiệm vụ ra file ${ten}.`);
 }
 
+// Đưa toàn bộ bộ lọc + thẻ KPI đang chọn về trạng thái ban đầu.
+// Gọi khi đăng xuất VÀ khi đăng nhập, để tài khoản mới đăng nhập vào không bị
+// dính lại bộ lọc/đơn vị của tài khoản trước đó dùng chung 1 tab trình duyệt.
+function datLaiBoLoc() {
+  ['fl-loai','fl-don-vi','fl-tinh-trang','fl-nguon','fl-lanh-dao','fl-chuyen-vien'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) sel.value = '';
+  });
+  const tk = document.getElementById('fl-tu-khoa');
+  if (tk) tk.value = '';
+
+  kpiFilter = 'tatCa';
+  ganSaoFilter = false;
+  document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('active'));
+  const kpiTong = document.getElementById('kpi-tatCa');
+  if (kpiTong) kpiTong.classList.add('active');
+  const btnQt = document.getElementById('btn-qt');
+  if (btnQt) { btnQt.classList.remove('active'); btnQt.textContent = '☆ Quan trọng'; }
+}
+
 // ===== ĐĂNG XUẤT =====
 function dangXuat() {
   nguoiDung = null;
   danhSachGoc = [];
   danhSachLoc = [];
+  datLaiBoLoc();
   document.getElementById('inp-ten').value = '';
   document.getElementById('inp-mat-khau').value = '';
   document.getElementById('dn-error').style.display = 'none';
