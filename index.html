@@ -1235,6 +1235,21 @@ function valOf(id) {
   const el = document.getElementById(id);
   return el ? el.value.trim() : '';
 }
+// dd/MM/yyyy (kiểu hiển thị của server) -> yyyy-MM-dd (kiểu <input type="date"> cần)
+function dmyToIso(str) {
+  str = String(str || '').trim();
+  const parts = str.split('/');
+  if (parts.length === 3) return parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  return '';
+}
+// yyyy-MM-dd (giá trị input date trả về) -> dd/MM/yyyy (kiểu hiển thị đang dùng trong bảng)
+function isoToDmy(str) {
+  str = String(str || '').trim();
+  const parts = str.split('-');
+  if (parts.length === 3) return parts[2] + '/' + parts[1] + '/' + parts[0];
+  return str;
+}
 function coCungDonVi(a, b) {
   const x = boDau(a || ''), y = boDau(b || '');
   if (!x || !y) return false;
@@ -1285,23 +1300,86 @@ function moCapNhat(idx) {
   // (áp dụng cho quan_tri, van_phong VÀ lanh_dao) — không chỉ riêng Văn phòng.
   const coQuyenXacNhan = !!nv.laVanPhong;
 
-  let html = `<div style="margin-bottom:14px;color:#475569;font-size:13px">
-    <b>${wa_esc(nv.nhiemVu)}</b><br>
-    Đơn vị thực hiện: ${wa_esc(nv.donViThucHien)||'—'} · Thời hạn: ${wa_esc(nv.thoiHan)||'—'}
-  </div>`;
+  let html = '';
+
+  // ----- Phần 1 — Thông tin nhiệm vụ (chỉ Văn phòng/Quản trị/Lãnh đạo sửa) -----
+  if (coQuyenXacNhan) {
+    html += `
+      <div class="form-section">
+        <div class="form-section-title">📋 Phần 1 — Thông tin nhiệm vụ</div>
+        <p class="form-hint" style="margin-top:0">Chỉ Văn phòng mới được chỉnh sửa phần này.</p>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Loại nhiệm vụ</label>
+            <select id="cn-loai">
+              <option value="">-- Chọn loại nhiệm vụ --</option>
+              ${['Nhiệm vụ thường xuyên','Nhiệm vụ theo Kế hoạch','Nhiệm vụ thành phố','TBKL Đảng ủy']
+                .map(l => `<option ${nv.loaiNhiemVu === l ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Nguồn giao</label>
+            <input id="cn-nguon" type="text" value="${wa_escAttr(nv.nguonGiao)}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Đơn vị thực hiện</label>
+            <input id="cn-donVi" type="text" value="${wa_escAttr(nv.donViThucHien)}">
+          </div>
+          <div class="form-field">
+            <label>Văn bản/Số ký hiệu</label>
+            <input id="cn-vanBan" type="text" value="${wa_escAttr(nv.vanBan)}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Ngày đến văn bản</label>
+            <input id="cn-ngayDenVanBan" type="date" value="${dmyToIso(nv.ngayDenVanBan)}">
+          </div>
+          <div class="form-field">
+            <label>Thời hạn</label>
+            <input id="cn-thoiHan" type="date" value="${dmyToIso(nv.thoiHan)}">
+          </div>
+        </div>
+        <div class="form-row full"><div class="form-field">
+          <label>Nội dung nhiệm vụ</label>
+          <textarea id="cn-noiDung">${wa_esc(nv.nhiemVu)}</textarea>
+        </div></div>
+        <div class="form-row full"><div class="form-field">
+          <label>Chỉ đạo/Giao nhiệm vụ</label>
+          <textarea id="cn-chiDao">${wa_esc(nv.chiDao)}</textarea>
+        </div></div>
+      </div>`;
+  } else {
+    html += `<div style="margin-bottom:14px;color:#475569;font-size:13px">
+      <b>${wa_esc(nv.nhiemVu)}</b><br>
+      Đơn vị thực hiện: ${wa_esc(nv.donViThucHien)||'—'} · Thời hạn: ${wa_esc(nv.thoiHan)||'—'}
+    </div>`;
+  }
 
   if (nv.duocCapNhat) {
     html += `
       <div class="form-section">
-        <div class="form-section-title">Tiến độ thực hiện</div>
+        <div class="form-section-title">⚡ Phần 2 — Thực hiện</div>
         <div class="form-row full"><div class="form-field">
           <label>Tiến độ thực hiện</label>
           <textarea id="cn-tienDo">${wa_esc(nv.tienDo)}</textarea>
         </div></div>
-        <div class="form-row full"><div class="form-field">
-          <label>Tự đánh giá</label>
-          <textarea id="cn-tuDanhGia">${wa_esc(nv.tuDanhGia)}</textarea>
-        </div></div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Tự đánh giá</label>
+            <select id="cn-tuDanhGia">
+              <option value="">-- Chọn --</option>
+              ${['Hoàn thành','Đang thực hiện','Không thực hiện']
+                .map(t => `<option ${nv.tuDanhGia === t ? 'selected' : ''}>${t}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Chuyên viên phụ trách</label>
+            <input id="cn-chuyenVien" type="text" value="${wa_escAttr(nv.chuyenVien)}">
+          </div>
+        </div>
         <div class="form-row full"><div class="form-field">
           <label>Giải trình</label>
           <textarea id="cn-giaiTrinh">${wa_esc(nv.giaiTrinh)}</textarea>
@@ -1310,21 +1388,27 @@ function moCapNhat(idx) {
           <label>Link minh chứng</label>
           <input id="cn-linkMinhChung" type="text" value="${wa_escAttr(nv.linkMinhChung)}" placeholder="https://...">
         </div></div>
-        <div class="form-row">
-          <div class="form-field">
-            <label>Chuyên viên phụ trách</label>
-            <input id="cn-chuyenVien" type="text" value="${wa_escAttr(nv.chuyenVien)}">
-          </div>
-          ${coQuyenXacNhan ? `<div class="form-field">
-            <label>Người theo dõi</label>
-            <input id="cn-nguoiTheoDoi" type="text" value="${wa_escAttr(nv.nguoiTheoDoi)}">
-          </div>` : '<div></div>'}
-        </div>
-        ${coQuyenXacNhan ? `
+        ${coQuyenXacNhan ? `<div class="form-row"><div class="form-field">
+          <label>Người theo dõi</label>
+          <input id="cn-nguoiTheoDoi" type="text" value="${wa_escAttr(nv.nguoiTheoDoi)}">
+        </div><div></div></div>` : ''}
+      </div>`;
+  } else {
+    html += `<p style="color:#64748b;font-size:13px">Bạn không có quyền cập nhật tiến độ nhiệm vụ này.</p>`;
+  }
+
+  if (coQuyenXacNhan) {
+    html += `
+      <div class="form-section">
+        <div class="form-section-title">✅ Phần 3 — Xác nhận hoàn thành</div>
         <div class="form-row">
           <div class="form-field">
             <label>Lãnh đạo phụ trách</label>
-            <input id="cn-lanhDao" type="text" value="${wa_escAttr(nv.lanhDao)}">
+            <select id="cn-lanhDao">
+              <option value="">-- Chọn lãnh đạo --</option>
+              ${['CT, các PCT','Đ/c Lê Minh Tuấn','Đ/c Lê Đức Trí','Đ/c Nguyễn Tấn Phát']
+                .map(l => `<option ${nv.lanhDao === l ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
           </div>
           <div class="form-field">
             <label>Kết quả/Tình trạng</label>
@@ -1337,15 +1421,13 @@ function moCapNhat(idx) {
         <div class="form-row full"><div class="form-field">
           <label>Xác nhận/Đánh giá (của Văn phòng)</label>
           <textarea id="cn-xacNhan">${wa_esc(nv.xacNhan)}</textarea>
-        </div></div>` : ''}
+        </div></div>
         <p class="form-hint">Tình trạng chọn "Đang thực hiện" sẽ vẫn tự cập nhật lại theo hạn (Sắp đến hạn/Trễ hạn...) ở lần tải sau, trừ khi chọn Hoàn thành / Không thực hiện / Tạm dừng.</p>
       </div>`;
-  } else {
-    html += `<p style="color:#64748b;font-size:13px">Bạn không có quyền cập nhật tiến độ nhiệm vụ này.</p>`;
   }
 
-  // ----- Khu vực xác nhận hoàn thành -----
-  html += `<div class="form-section"><div class="form-section-title">Xác nhận hoàn thành</div>`;
+  // ----- Khu vực xác nhận hoàn thành theo đơn vị -----
+  html += `<div class="form-section"><div class="form-section-title">Đề nghị / Xác nhận theo đơn vị</div>`;
   if (coQuyenXacNhan) {
     const dsChoXN = (nv.danhSachXacNhanDonVi || []).filter(x => x.trangThai === 'Chờ xác nhận');
     if (!dsChoXN.length) {
@@ -1395,7 +1477,7 @@ function moCapNhat(idx) {
   html += `</div>`;
 
   document.getElementById('cn-body').innerHTML = html;
-  document.getElementById('cn-btn-luu').style.display = nv.duocCapNhat ? 'inline-block' : 'none';
+  document.getElementById('cn-btn-luu').style.display = (nv.duocCapNhat || coQuyenXacNhan) ? 'inline-block' : 'none';
   document.getElementById('modal-cn').classList.add('open');
 }
 
@@ -1406,7 +1488,7 @@ function dongCapNhat() {
 
 async function luuCapNhat() {
   const nv = danhSachLoc[cnDangSua];
-  if (!nv || !nv.duocCapNhat) return;
+  if (!nv || !(nv.duocCapNhat || nv.laVanPhong)) return;
   const btn = document.getElementById('cn-btn-luu');
   btn.disabled = true; btn.textContent = 'Đang lưu…';
 
@@ -1426,6 +1508,15 @@ async function luuCapNhat() {
       lanhDao: valOf('cn-lanhDao'),
       tinhTrang: valOf('cn-tinhTrang'),
       xacNhan: valOf('cn-xacNhan'),
+      // Phần 1 — thông tin cơ bản, chỉ Văn phòng/Quản trị/Lãnh đạo sửa được
+      loaiNhiemVu: valOf('cn-loai'),
+      nguonGiao: valOf('cn-nguon'),
+      donViThucHien: valOf('cn-donVi'),
+      vanBan: valOf('cn-vanBan'),
+      ngayDenVanBan: valOf('cn-ngayDenVanBan'),
+      thoiHan: valOf('cn-thoiHan'),
+      noiDung: valOf('cn-noiDung'),
+      chiDao: valOf('cn-chiDao'),
     });
   }
 
@@ -1439,6 +1530,10 @@ async function luuCapNhat() {
       if (nv.laVanPhong) Object.assign(nv, {
         nguoiTheoDoi: payload.nguoiTheoDoi, lanhDao: payload.lanhDao,
         tinhTrang: payload.tinhTrang, xacNhan: payload.xacNhan,
+        loaiNhiemVu: payload.loaiNhiemVu, nguonGiao: payload.nguonGiao,
+        donViThucHien: payload.donViThucHien, vanBan: payload.vanBan,
+        ngayDenVanBan: isoToDmy(payload.ngayDenVanBan), thoiHan: isoToDmy(payload.thoiHan),
+        nhiemVu: payload.noiDung, chiDao: payload.chiDao,
       });
       nv.tinhTrangThucTe = tinhTinhTrang(nv);
       hienToast('Đã lưu cập nhật nhiệm vụ ' + nv.maNhiemVu + '.');
