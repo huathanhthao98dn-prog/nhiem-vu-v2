@@ -976,7 +976,9 @@ async function lamMoi() {
 }
 
 // ===== LỌC DỮ LIỆU =====
-function apDungLoc() {
+// Áp dụng mọi bộ lọc (loại, đơn vị, tình trạng, nguồn, lãnh đạo, chuyên viên, từ khóa, quan trọng)
+// NHƯNG KHÔNG áp dụng bộ lọc theo thẻ KPI (tình trạng thực tế) — dùng làm nền để tính số trên từng thẻ KPI.
+function layDanhSachSauLocCoBan() {
   const loai = document.getElementById('fl-loai').value;
   const donVi = boDau(document.getElementById('fl-don-vi').value);
   const tinhTrang = document.getElementById('fl-tinh-trang').value;
@@ -985,8 +987,7 @@ function apDungLoc() {
   const chuyenVien = document.getElementById('fl-chuyen-vien').value;
   const tuKhoa = boDau(document.getElementById('fl-tu-khoa').value);
 
-  danhSachLoc = danhSachGoc.filter(nv => {
-    if (!khopKpi(nv, kpiFilter)) return false;
+  return danhSachGoc.filter(nv => {
     if (loai && nv.loaiNhiemVu !== loai) return false;
     if (donVi && !boDau(nv.donViThucHien||'').includes(donVi)) return false;
     if (tinhTrang && nv.tinhTrangThucTe !== tinhTrang) return false;
@@ -1000,6 +1001,11 @@ function apDungLoc() {
     }
     return true;
   });
+}
+
+function apDungLoc() {
+  const dsCoBan = layDanhSachSauLocCoBan();
+  danhSachLoc = dsCoBan.filter(nv => khopKpi(nv, kpiFilter));
 
   // Sắp xếp theo ưu tiên
   danhSachLoc.sort((a,b) => {
@@ -1009,7 +1015,7 @@ function apDungLoc() {
   });
 
   trang = 1;
-  capNhatKPI();
+  capNhatKPI(dsCoBan);
   hienThiBang();
 }
 
@@ -1039,9 +1045,12 @@ function khopKpi(nv, filter) {
 }
 
 // ===== CẬP NHẬT KPI =====
-function capNhatKPI() {
-  const kpi = { tongCong:danhSachGoc.length, hoanThanh:0, dangThucHien:0, treHan:0, denHan:0, choXacNhan:0, khac:0 };
-  danhSachGoc.forEach(nv => {
+// dsCoBan: danh sách đã áp các bộ lọc hiện tại (đơn vị, loại, nguồn...) nhưng chưa áp lọc theo thẻ KPI.
+// Nếu không truyền vào (gọi từ nơi khác), tự tính lại từ bộ lọc hiện tại trên màn hình.
+function capNhatKPI(dsCoBan) {
+  const ds = dsCoBan || layDanhSachSauLocCoBan();
+  const kpi = { tongCong:ds.length, hoanThanh:0, dangThucHien:0, treHan:0, denHan:0, choXacNhan:0, khac:0 };
+  ds.forEach(nv => {
     const tt = boDau(nv.tinhTrangThucTe||'');
     const tdXN = boDau(nv.trangThaiDeNghi||'');
     const txXN = boDau(nv.trangThaiXacNhan||'');
