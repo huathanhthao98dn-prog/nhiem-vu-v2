@@ -1136,6 +1136,7 @@ function hienThiBang() {
           <span class="badge ${badgeClass}">${tt}</span>
           ${ngay !== null && ngay < 0 ? `<span class="ngay-con">${Math.abs(ngay)} ngày</span>` : ''}
           ${ngay !== null && ngay >= 0 && ngay <= 7 ? `<span class="ngay-con" style="color:#d97706">${ngay} ngày</span>` : ''}
+          ${boDau(nv.trangThaiXacNhan||'') === 'tu choi' ? `<span class="badge-mini badge-mini-tuchoi" style="margin-left:6px">❌ Bị từ chối</span>` : ''}
         </td>
         <td>${nv.chuyenVien||'—'}</td>
         <td>${nv.lanhDao||'—'}</td>
@@ -1194,6 +1195,12 @@ function xemChiTiet(idx) {
     ['Người cập nhật gần nhất', nv.nguoiCapNhatCuoi],
     ['Ngày cập nhật gần nhất', nv.ngayCapNhatCuoi],
   ];
+  // Nếu đơn vị của tài khoản đang xem có đề nghị xác nhận bị Văn phòng từ chối,
+  // hiện rõ lý do ngay ở đây — không cần vào "Cập nhật" mới thấy.
+  const entryDonViToi = timEntryDonVi(nv, (nguoiDung && nguoiDung.donVi) || '');
+  if (entryDonViToi && entryDonViToi.trangThai === 'Từ chối') {
+    fields.push(['⚠️ Lý do Văn phòng từ chối', entryDonViToi.lyDo || '(không ghi lý do)']);
+  }
   let html = '';
   fields.forEach(([label, val]) => {
     let vhtml = val || '—';
@@ -1246,6 +1253,7 @@ function tinhTrangThaiXacNhanTongHop(ds) {
   (ds || []).forEach(x => {
     if (x.trangThai === 'Chờ xác nhận') kq = 'Chờ xác nhận';
     else if (x.trangThai === 'Đã xác nhận' && kq !== 'Chờ xác nhận') kq = 'Đã xác nhận';
+    else if (x.trangThai === 'Từ chối' && !kq) kq = 'Từ chối';
   });
   return kq;
 }
