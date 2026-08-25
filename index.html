@@ -308,7 +308,7 @@
   .col-sao { width: 32px; text-align: center; cursor: pointer; font-size: 16px; }
   .col-sao:hover { color: #d97706; }
   .col-stt { width: 46px; text-align: center; color: #64748b; }
-  .col-thoihan { width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .col-thoihan { width: 75px; padding-left: 6px; padding-right: 6px; text-align: center; }
 
   /* PHÂN TRANG */
   .pagination {
@@ -692,8 +692,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
             <col style="width:130px">
             <col style="width:300px">
             <col style="width:140px">
-            <col style="width:100px">
-            <col style="width:110px">
+            <col style="width:75px">
+            <col style="width:260px">
             <col style="width:120px">
             <col style="width:100px">
             <col style="width:110px">
@@ -1190,7 +1190,7 @@ function hienThiBang() {
         <td>${nv.donViThucHien||'—'}</td>
         <td style="max-width:350px">${nv.nhiemVu||'—'}</td>
         <td>${nv.vanBan||'—'}</td>
-        <td class="col-thoihan">${nv.thoiHan||'—'}</td>
+        <td class="col-thoihan" title="${nv.thoiHan||''}">${nv.thoiHan||'—'}</td>
         <td>${nv.tienDo||'—'}</td>
         <td>
           <span class="badge ${badgeClass}">${tt}</span>
