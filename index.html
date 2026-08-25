@@ -587,6 +587,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         <div class="db-user-role" id="db-vai-tro"></div>
       </div>
       <button class="btn-outline-white" onclick="lamMoi()">Làm mới</button>
+      <button class="btn-outline-white" onclick="moDoiMatKhau()">🔑 Đổi mật khẩu</button>
       <button class="btn-outline-white" onclick="dangXuat()">Đăng xuất</button>
     </div>
   </div>
@@ -741,6 +742,35 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <div class="modal-footer">
       <button class="btn-dong" onclick="dongCapNhat()">Đóng</button>
       <button class="btn-luu" id="cn-btn-luu" onclick="luuCapNhat()">💾 Lưu cập nhật</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ĐỔI MẬT KHẨU -->
+<div class="modal-overlay" id="modal-doimatkhau">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">🔑 Đổi mật khẩu</h3>
+      <button class="btn-close" onclick="dongDoiMatKhau()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row full"><div class="form-field">
+        <label>Mật khẩu hiện tại</label>
+        <input id="dmk-cu" type="password" autocomplete="current-password">
+      </div></div>
+      <div class="form-row full"><div class="form-field">
+        <label>Mật khẩu mới (tối thiểu 6 ký tự)</label>
+        <input id="dmk-moi" type="password" autocomplete="new-password">
+      </div></div>
+      <div class="form-row full"><div class="form-field">
+        <label>Nhập lại mật khẩu mới</label>
+        <input id="dmk-xacnhan" type="password" autocomplete="new-password">
+      </div></div>
+      <p id="dmk-loi" style="color:#dc2626;font-size:13px;display:none;margin:0"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-dong" onclick="dongDoiMatKhau()">Đóng</button>
+      <button class="btn-luu" id="dmk-btn-luu" onclick="luuDoiMatKhau()">💾 Đổi mật khẩu</button>
     </div>
   </div>
 </div>
@@ -1359,6 +1389,9 @@ function moCapNhat(idx) {
           <label>Chỉ đạo/Giao nhiệm vụ</label>
           <textarea id="cn-chiDao">${wa_esc(nv.chiDao)}</textarea>
         </div></div>
+        <div style="text-align:right;margin-top:6px">
+          <button type="button" onclick="xoaNhiemVuHienTai()" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer">🗑️ Xóa nhiệm vụ này</button>
+        </div>
       </div>`;
   } else {
     html += `<div style="margin-bottom:14px;color:#475569;font-size:13px">
@@ -1493,6 +1526,30 @@ function moCapNhat(idx) {
 function dongCapNhat() {
   document.getElementById('modal-cn').classList.remove('open');
   cnDangSua = null;
+}
+
+async function xoaNhiemVuHienTai() {
+  const nv = danhSachLoc[cnDangSua];
+  if (!nv || !nv.laVanPhong) return;
+  if (!confirm(`Xóa hẳn nhiệm vụ ${nv.maNhiemVu}?\n\n"${nv.nhiemVu || ''}"\n\nThao tác này KHÔNG THỂ hoàn tác.`)) return;
+
+  const btn = document.getElementById('cn-btn-luu');
+  if (btn) btn.disabled = true;
+  try {
+    const kq = await postAPI('xoaNhiemVu', { maNhiemVu: nv.maNhiemVu });
+    if (kq?.thanhCong) {
+      hienToast(kq.thongBao || 'Đã xóa nhiệm vụ ' + nv.maNhiemVu + '.');
+      danhSachGoc = danhSachGoc.filter(x => x.maNhiemVu !== nv.maNhiemVu);
+      dongCapNhat();
+      apDungLoc();
+    } else {
+      hienToast(kq?.thongBao || 'Không thể xóa nhiệm vụ.', true);
+    }
+  } catch {
+    hienToast('Không thể kết nối máy chủ.', true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function luuCapNhat() {
@@ -1862,6 +1919,49 @@ function datLaiBoLoc() {
   if (btnQt) { btnQt.classList.remove('active'); btnQt.textContent = '☆ Quan trọng'; }
 }
 
+// ===== ĐỔI MẬT KHẨU =====
+function moDoiMatKhau() {
+  document.getElementById('dmk-cu').value = '';
+  document.getElementById('dmk-moi').value = '';
+  document.getElementById('dmk-xacnhan').value = '';
+  document.getElementById('dmk-loi').style.display = 'none';
+  document.getElementById('modal-doimatkhau').classList.add('open');
+}
+
+function dongDoiMatKhau() {
+  document.getElementById('modal-doimatkhau').classList.remove('open');
+}
+
+async function luuDoiMatKhau() {
+  const cu = document.getElementById('dmk-cu').value.trim();
+  const moi = document.getElementById('dmk-moi').value.trim();
+  const xn = document.getElementById('dmk-xacnhan').value.trim();
+  const loiEl = document.getElementById('dmk-loi');
+  loiEl.style.display = 'none';
+
+  if (!cu) { loiEl.textContent = 'Vui lòng nhập mật khẩu hiện tại.'; loiEl.style.display = 'block'; return; }
+  if (!moi || moi.length < 6) { loiEl.textContent = 'Mật khẩu mới phải có ít nhất 6 ký tự.'; loiEl.style.display = 'block'; return; }
+  if (moi !== xn) { loiEl.textContent = 'Nhập lại mật khẩu mới không khớp.'; loiEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('dmk-btn-luu');
+  btn.disabled = true; btn.textContent = 'Đang xử lý…';
+  try {
+    const kq = await postAPI('doiMatKhau', { ten: nguoiDung.tenDangNhap, matKhauCu: cu, matKhauMoi: moi });
+    if (kq?.thanhCong) {
+      hienToast(kq.thongBao || 'Đã đổi mật khẩu thành công.');
+      dongDoiMatKhau();
+    } else {
+      loiEl.textContent = kq?.thongBao || 'Không thể đổi mật khẩu.';
+      loiEl.style.display = 'block';
+    }
+  } catch {
+    loiEl.textContent = 'Không thể kết nối máy chủ.';
+    loiEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Đổi mật khẩu';
+  }
+}
+
 // ===== ĐĂNG XUẤT =====
 function dangXuat() {
   nguoiDung = null;
@@ -1881,6 +1981,7 @@ document.addEventListener('keydown', e => {
   dongModal();
   dongCapNhat();
   dongThemMoi();
+  dongDoiMatKhau();
 });
 </script>
 </body>
