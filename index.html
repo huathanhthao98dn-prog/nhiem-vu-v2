@@ -250,6 +250,8 @@
   .btn-quan-trong.active { background: #fffbeb; }
   .btn-xuat { background: #16a34a; color: #fff; border-color: #16a34a; }
   .btn-xuat:hover { background: #15803d; }
+  .btn-bao-cao { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+  .btn-bao-cao:hover { background: #6d28d9; }
 
   /* BẢNG */
   .table-wrap {
@@ -555,6 +557,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         <span class="form-icon">🔒</span>
         <input class="form-input" id="inp-mat-khau" type="password" placeholder="Mật khẩu" autocomplete="current-password">
       </div>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:#475569;cursor:pointer;margin:-6px 0 14px 2px;user-select:none">
+        <input type="checkbox" id="chk-ghi-nho" style="width:15px;height:15px;cursor:pointer">
+        Ghi nhớ đăng nhập trên thiết bị này
+      </label>
       <button class="btn-primary" id="btn-dang-nhap" onclick="dangNhap()">
         <span>Đăng nhập</span><span style="font-size:18px">→</span>
       </button>
@@ -668,6 +674,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       <div class="filter-row">
         <input class="filter-input" id="fl-tu-khoa" placeholder="Nhập nội dung, số văn bản, đơn vị hoặc người phụ trách..." oninput="apDungLoc()">
         <button class="btn-action btn-xuat" onclick="xuatExcel()">📊 Xuất Excel (<span id="sl-loc">0</span>)</button>
+        <button class="btn-action btn-bao-cao" id="btn-bao-cao-tuan" onclick="xuatBaoCaoTuan()">📄 Báo cáo tuần</button>
         <button class="btn-action btn-them" id="btn-them" onclick="moThemMoi()">+ Thêm nhiệm vụ</button>
         <button class="btn-action btn-quan-trong" id="btn-qt" onclick="toggleQuanTrong()">☆ Quan trọng</button>
         <button class="btn-action btn-xoa" onclick="xoaLoc()">Xóa bộ lọc</button>
@@ -845,6 +852,30 @@ const DON_VI_CHINH_THUC = [
   'Ban Quản lý dự án đầu tư xây dựng xã',
 ];
 
+// ===== GHI NHỚ ĐĂNG NHẬP (lưu trên trình duyệt của thiết bị này) =====
+const GHI_NHO_KEY = 'baNa_ghiNhoDangNhap';
+
+function luuGhiNhoDangNhap(ten, mk) {
+  try {
+    if (document.getElementById('chk-ghi-nho').checked) {
+      localStorage.setItem(GHI_NHO_KEY, JSON.stringify({ ten, mk }));
+    } else {
+      localStorage.removeItem(GHI_NHO_KEY);
+    }
+  } catch (e) { /* trình duyệt chặn localStorage — bỏ qua, không ảnh hưởng đăng nhập */ }
+}
+
+function napGhiNhoDangNhap() {
+  try {
+    const raw = localStorage.getItem(GHI_NHO_KEY);
+    if (!raw) return;
+    const { ten, mk } = JSON.parse(raw);
+    if (ten) document.getElementById('inp-ten').value = ten;
+    if (mk) document.getElementById('inp-mat-khau').value = mk;
+    document.getElementById('chk-ghi-nho').checked = true;
+  } catch (e) { /* dữ liệu lưu bị hỏng — bỏ qua */ }
+}
+
 // ===== TIỆN ÍCH =====
 function boDau(s) {
   return String(s||'').trim().toLowerCase()
@@ -947,6 +978,7 @@ async function dangNhap() {
       errEl.style.display = 'block';
       return;
     }
+    luuGhiNhoDangNhap(ten, mk);
     nguoiDung = kq.nguoiDung;
     await khoiTaoDashboard(kq);
   } catch (e) {
@@ -975,6 +1007,7 @@ async function khoiTaoDashboard(data) {
   const vt = boDau(nguoiDung.vaiTro || '').replace(/_/g, ' ');
   laVP = vt === 'chu so huu' || vt === 'quan tri' || vt === 'van phong';
   if (!laVP) document.getElementById('btn-them').style.display = 'none';
+  if (!laVP) document.getElementById('btn-bao-cao-tuan').style.display = 'none';
 
   capNhatDuLieu(data);
 }
@@ -1845,6 +1878,185 @@ document.getElementById('modal-them').addEventListener('click', e => {
 // Dùng ExcelJS (thay vì SheetJS) để giữ được định dạng (màu tiêu đề, viền kẻ ô,
 // đóng băng dòng đầu) giống bản xuất Excel của hệ thống cũ, không phải một
 // bảng dữ liệu trần trụi không màu.
+// ===== BÁO CÁO TUẦN (dành cho Văn phòng) =====
+// Xuất báo cáo dạng văn bản (.doc, mở trực tiếp bằng Word) tổng hợp số liệu
+// nhiệm vụ theo từng "Loại nhiệm vụ", theo đúng bố cục báo cáo tuần hiện có
+// của Văn phòng. Ghi chú quan trọng về độ chính xác:
+//  - "Ngày hoàn thành" dùng TẠM ngày cập nhật gần nhất (ngayCapNhatCuoi) vì
+//    hệ thống chưa có trường ngày hoàn thành riêng — nên phần "trước hạn/
+//    đúng hạn/trễ hạn" chỉ mang tính tương đối.
+//  - Phần "Đơn thư" và "Kiến nghị cử tri" hệ thống chưa có dữ liệu, để trống
+//    cho Văn phòng tự nhập sau khi mở file.
+//  - Phần "Đánh giá tình hình" và "Kết luận & đề xuất chỉ đạo" là gợi ý do
+//    hệ thống soạn tự động dựa trên số liệu — CẦN xem lại, chỉnh sửa trước
+//    khi trình ký, không dùng nguyên văn.
+
+function bcChuyenNgay(str) {
+  if (!str) return null;
+  try {
+    let s = String(str).trim();
+    if (s.includes('T')) s = s.split('T')[0];
+    const p = s.split('/');
+    if (p.length === 3) return new Date(`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}T00:00:00+07:00`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(`${s}T00:00:00+07:00`);
+  } catch {}
+  return null;
+}
+
+function bcDinhDangNgay(d) {
+  if (!d || isNaN(d)) return '';
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`;
+}
+
+// Gộp danh sách nhiệm vụ theo đơn vị thực hiện -> "03 Phòng Kinh tế, 01 Công an xã"
+function bcGhepDonVi(list) {
+  const dem = {};
+  list.forEach(nv => {
+    const dv = (nv.donViThucHien || '').trim() || 'Chưa rõ đơn vị';
+    dem[dv] = (dem[dv] || 0) + 1;
+  });
+  return Object.entries(dem)
+    .sort((a, b) => b[1] - a[1])
+    .map(([dv, n]) => `${String(n).padStart(2,'0')} ${wa_esc(dv)}`)
+    .join(', ');
+}
+
+function bcPhanTichNhom(list) {
+  const hoanThanh = [], dangThucHien = [], khongTH = [];
+  list.forEach(nv => {
+    if (nv.tinhTrangThucTe === 'Hoàn thành') hoanThanh.push(nv);
+    else if (['Không thực hiện','Tạm dừng/Hủy'].includes(nv.tinhTrangThucTe)) khongTH.push(nv);
+    else dangThucHien.push(nv);
+  });
+  const treHanDangThucHien = dangThucHien.filter(nv => nv.tinhTrangThucTe === 'Trễ hạn');
+
+  let truocHan = 0, dungHan = 0, treHan = 0, khongRoNgay = 0;
+  const hoanThanhTreHanList = [];
+  hoanThanh.forEach(nv => {
+    const ngayHT = bcChuyenNgay(nv.ngayCapNhatCuoi);
+    const hanChot = bcChuyenNgay(nv.thoiHan);
+    if (!ngayHT || !hanChot) { khongRoNgay++; return; }
+    const soNgay = Math.round((ngayHT - hanChot) / 86400000);
+    if (soNgay < 0) truocHan++;
+    else if (soNgay === 0) dungHan++;
+    else { treHan++; hoanThanhTreHanList.push(nv); }
+  });
+
+  return { tong: list.length, hoanThanh, dangThucHien, khongTH, treHanDangThucHien,
+    truocHan, dungHan, treHan, khongRoNgay, hoanThanhTreHanList };
+}
+
+function bcDoanVanNhom(tk) {
+  const gc = tk.khongRoNgay ? `, ${tk.khongRoNgay} nhiệm vụ chưa xác định được ngày hoàn thành` : '';
+  const dvTreHT = tk.hoanThanhTreHanList.length ? ` (${bcGhepDonVi(tk.hoanThanhTreHanList)})` : '';
+  const dvTreDTH = tk.treHanDangThucHien.length ? ` (${bcGhepDonVi(tk.treHanDangThucHien)})` : '';
+  const cauDangTH = tk.treHanDangThucHien.length
+    ? `Còn ${tk.dangThucHien.length} nhiệm vụ đang thực hiện, trong đó ${tk.treHanDangThucHien.length} nhiệm vụ trễ hạn${dvTreDTH}.`
+    : `Còn ${tk.dangThucHien.length} nhiệm vụ đang thực hiện.`;
+  const cauKhongTH = tk.khongTH.length ? ` ${tk.khongTH.length} nhiệm vụ không thực hiện/tạm dừng.` : '';
+
+  return `<p>Tổng số nhiệm vụ là <b>${tk.tong}</b> nhiệm vụ. Đến nay đã hoàn thành ${tk.hoanThanh.length} nhiệm vụ `
+    + `(${tk.truocHan} hoàn thành trước hạn, ${tk.dungHan} hoàn thành đúng hạn, ${tk.treHan} hoàn thành trễ hạn${dvTreHT}${gc}). `
+    + `${cauDangTH}${cauKhongTH}</p>`;
+}
+
+const BC_NHOM = [
+  { loai: 'Nhiệm vụ thành phố',     tieuDe: 'Nhiệm vụ trên phần mềm theo dõi nhiệm vụ của thành phố' },
+  { loai: 'TBKL Đảng ủy',           tieuDe: 'Nhiệm vụ của Đảng ủy xã giao' },
+  { loai: 'Nhiệm vụ thường xuyên',  tieuDe: 'Nhiệm vụ thường xuyên (UBND thành phố, các sở ngành, UBND xã giao)' },
+  { loai: 'Nhiệm vụ theo Kế hoạch', tieuDe: 'Nhiệm vụ theo Kế hoạch' },
+];
+
+async function xuatBaoCaoTuan() {
+  if (!danhSachGoc.length) { hienToast('Chưa có dữ liệu nhiệm vụ để tổng hợp báo cáo.', true); return; }
+
+  hienToast('Đang tổng hợp báo cáo tuần...');
+
+  const homNay = new Date(new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Ho_Chi_Minh'}) + 'T00:00:00+07:00');
+  const ngayBC = bcDinhDangNgay(homNay);
+
+  const phanNhiemVu = [];
+  const treHanTong = {}; // đơn vị -> tổng số nhiệm vụ trễ hạn (mọi loại), dùng cho phần đánh giá
+  let tongTatCa = 0, tongTreHanTatCa = 0;
+
+  BC_NHOM.forEach(nhom => {
+    const list = danhSachGoc.filter(nv => nv.loaiNhiemVu === nhom.loai);
+    if (!list.length) return;
+    const tk = bcPhanTichNhom(list);
+    tongTatCa += tk.tong;
+    [...tk.hoanThanhTreHanList, ...tk.treHanDangThucHien].forEach(nv => {
+      const dv = (nv.donViThucHien || '').trim() || 'Chưa rõ đơn vị';
+      treHanTong[dv] = (treHanTong[dv] || 0) + 1;
+      tongTreHanTatCa++;
+    });
+    phanNhiemVu.push({ tieuDe: nhom.tieuDe, html: bcDoanVanNhom(tk) });
+  });
+
+  const dsDonViTreHan = Object.entries(treHanTong).sort((a, b) => b[1] - a[1]);
+  const topDonVi = dsDonViTreHan.slice(0, 3).map(([dv, n]) => `${wa_esc(dv)} (${n} nhiệm vụ)`).join(', ');
+
+  const danhGiaHtml = `<p><i>[Gợi ý — chị xem lại, chỉnh sửa trước khi trình ký]</i> Tính đến ngày ${ngayBC}, hệ thống ghi nhận tổng cộng ${tongTatCa} nhiệm vụ đang theo dõi, trong đó có ${tongTreHanTatCa} nhiệm vụ trễ hạn (gồm hoàn thành trễ hạn và đang thực hiện quá hạn).`
+    + (dsDonViTreHan.length ? ` Đơn vị có số nhiệm vụ trễ hạn nhiều nhất là ${topDonVi}. Cần có biện pháp đôn đốc, chỉ đạo xử lý dứt điểm trong tuần tới.` : ' Không có nhiệm vụ trễ hạn đáng chú ý trong kỳ báo cáo này.')
+    + `</p>`;
+
+  const ketLuanHtml = `<p><i>[Gợi ý — chị xem lại, chỉnh sửa trước khi trình ký]</i> Kính đề nghị Chủ tịch UBND xã chỉ đạo: `
+    + (dsDonViTreHan.length ? `${wa_esc(dsDonViTreHan[0][0])} và các đơn vị liên quan khẩn trương rà soát, xử lý dứt điểm các nhiệm vụ trễ hạn nêu trên, báo cáo giải trình cụ thể từng nhiệm vụ; ` : '')
+    + `giao Văn phòng HĐND và UBND xã tiếp tục theo dõi, đôn đốc tiến độ và tổng hợp báo cáo tại cuộc họp giao ban tuần tiếp theo.</p>`;
+
+  const phanDonThuHtml = `<p><i>[Chị nhập số liệu đơn thư vào phần này — hệ thống hiện chưa theo dõi dữ liệu đơn thư]</i></p>`;
+  const phanKienNghiHtml = `<p><i>[Chị nhập số liệu kiến nghị cử tri vào phần này — hệ thống hiện chưa theo dõi dữ liệu này]</i></p>`;
+
+  const muc = [
+    ...phanNhiemVu,
+    { tieuDe: 'Tình hình tiếp nhận, giải quyết đơn', html: phanDonThuHtml },
+    { tieuDe: 'Tiến độ giải quyết kiến nghị cử tri trước kỳ họp HĐND xã', html: phanKienNghiHtml },
+  ];
+
+  const mucHtml = muc.map((m, i) => `<p class="bc-h2"><b>${i+1}. ${wa_esc(m.tieuDe)}</b></p>${m.html}`).join('\n');
+
+  const noiDung = `
+    <p class="bc-title">BÁO CÁO KẾT QUẢ THEO DÕI THỰC HIỆN NHIỆM VỤ</p>
+    <p class="bc-title">(Tính đến ngày ${ngayBC})</p>
+    <p class="bc-h1"><b>I. KẾT QUẢ THỰC HIỆN NHIỆM VỤ</b></p>
+    ${mucHtml}
+    <p class="bc-title" style="margin-top:24pt">BÁO CÁO ĐÁNH GIÁ TÌNH HÌNH THỰC HIỆN NHIỆM VỤ</p>
+    ${danhGiaHtml}
+    <p class="bc-h1"><b>KẾT LUẬN &amp; ĐỀ XUẤT CHỈ ĐẠO</b></p>
+    ${ketLuanHtml}
+  `;
+
+  const htmlDoc = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>Bao cao theo doi nhiem vu</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
+<style>
+  @page { size: 21cm 29.7cm; margin: 2cm 2cm 2cm 3cm; }
+  body { font-family: 'Times New Roman', Times, serif; font-size: 14pt; line-height: 1.4; color:#000; }
+  p { margin: 0 0 8pt 0; text-align: justify; }
+  .bc-title { text-align: center; font-weight: bold; margin: 0; }
+  .bc-h1 { margin-top: 14pt; }
+  .bc-h2 { margin-top: 10pt; margin-bottom: 4pt; }
+  i { color: #7c3aed; }
+</style>
+</head>
+<body>
+${noiDung}
+</body>
+</html>`;
+
+  const blob = new Blob([htmlDoc], { type: 'application/msword' });
+  const ten = `Bao_cao_theo_doi_nhiem_vu_${homNay.toISOString().slice(0,10)}.doc`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = ten;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  hienToast(`Đã xuất ${ten}. Nhớ bổ sung phần Đơn thư/Kiến nghị cử tri và xem lại phần Đánh giá/Kết luận (chữ tím) trước khi trình ký.`);
+}
+
 async function xuatExcel() {
   if (!danhSachLoc.length) { hienToast('Không có dữ liệu để xuất.', true); return; }
   if (typeof ExcelJS === 'undefined') { hienToast('Không tải được thư viện xuất Excel. Kiểm tra kết nối mạng rồi thử lại.', true); return; }
@@ -2011,6 +2223,9 @@ document.addEventListener('keydown', e => {
   dongThemMoi();
   dongDoiMatKhau();
 });
+
+// Tự điền lại tên đăng nhập/mật khẩu đã lưu (nếu chị từng tick "Ghi nhớ đăng nhập")
+napGhiNhoDangNhap();
 </script>
 </body>
 </html>
