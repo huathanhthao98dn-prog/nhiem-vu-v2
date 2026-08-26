@@ -222,6 +222,30 @@
   @media (max-width: 600px) {
     .filter-row-select { grid-template-columns: repeat(2, 1fr); }
   }
+  /* Bộ lọc chọn nhiều (multi-select) — thay cho <select> chỉ chọn 1 giá trị */
+  .ms-wrap { position: relative; }
+  .ms-btn {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ms-btn::after { content: '▾'; font-size: 10px; color: #94a3b8; flex-shrink: 0; }
+  .ms-btn.ms-active { border-color: #174c78; color: #174c78; font-weight: 600; }
+  .ms-panel {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 60;
+    background: #fff; border: 1px solid #d1d9e0; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.14); min-width: 100%; width: max-content; max-width: 320px;
+    max-height: 280px; overflow-y: auto; padding: 6px;
+  }
+  .ms-panel.open { display: block; }
+  .ms-item {
+    display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 5px;
+    cursor: pointer; font-size: 13px; color: #1e293b; line-height: 1.35;
+  }
+  .ms-item:hover { background: #f0f7ff; }
+  .ms-item input { cursor: pointer; margin-top: 2px; flex-shrink: 0; }
+  .ms-sep { border-top: 1px solid #e2e8f0; margin: 4px 2px; }
+  .ms-all { font-weight: 600; color: #174c78; }
+  .ms-rong { color: #94a3b8; cursor: default; padding: 6px 8px; font-size: 13px; }
   .filter-input {
     flex: 1; min-width: 200px;
     padding: 8px 12px;
@@ -645,31 +669,30 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <!-- BỘ LỌC -->
     <div class="filter-bar">
       <div class="filter-row filter-row-select">
-        <select class="filter-select" id="fl-loai" onchange="apDungLoc()">
-          <option value="">Loại nhiệm vụ</option>
-        </select>
-        <select class="filter-select" id="fl-don-vi" onchange="apDungLoc()">
-          <option value="">Đơn vị thực hiện</option>
-        </select>
-        <select class="filter-select" id="fl-tinh-trang" onchange="apDungLoc()">
-          <option value="">Tình trạng</option>
-          <option>Chưa thực hiện</option>
-          <option>Đang thực hiện</option>
-          <option>Sắp đến hạn</option>
-          <option>Đến hạn</option>
-          <option>Trễ hạn</option>
-          <option>Hoàn thành</option>
-          <option>Không thực hiện</option>
-        </select>
-        <select class="filter-select" id="fl-chuyen-vien" onchange="apDungLoc()">
-          <option value="">Chuyên viên</option>
-        </select>
-        <select class="filter-select" id="fl-lanh-dao" onchange="apDungLoc()">
-          <option value="">Lãnh đạo phụ trách</option>
-        </select>
-        <select class="filter-select" id="fl-nguon" onchange="apDungLoc()">
-          <option value="">Nguồn giao</option>
-        </select>
+        <div class="ms-wrap">
+          <button type="button" class="filter-select ms-btn" id="ms-btn-loai" onclick="msToggle('loai')">Loại nhiệm vụ</button>
+          <div class="ms-panel" id="ms-panel-loai"></div>
+        </div>
+        <div class="ms-wrap">
+          <button type="button" class="filter-select ms-btn" id="ms-btn-donVi" onclick="msToggle('donVi')">Đơn vị thực hiện</button>
+          <div class="ms-panel" id="ms-panel-donVi"></div>
+        </div>
+        <div class="ms-wrap">
+          <button type="button" class="filter-select ms-btn" id="ms-btn-tinhTrang" onclick="msToggle('tinhTrang')">Tình trạng</button>
+          <div class="ms-panel" id="ms-panel-tinhTrang"></div>
+        </div>
+        <div class="ms-wrap">
+          <button type="button" class="filter-select ms-btn" id="ms-btn-chuyenVien" onclick="msToggle('chuyenVien')">Chuyên viên</button>
+          <div class="ms-panel" id="ms-panel-chuyenVien"></div>
+        </div>
+        <div class="ms-wrap">
+          <button type="button" class="filter-select ms-btn" id="ms-btn-lanhDao" onclick="msToggle('lanhDao')">Lãnh đạo phụ trách</button>
+          <div class="ms-panel" id="ms-panel-lanhDao"></div>
+        </div>
+        <div class="ms-wrap">
+          <button type="button" class="filter-select ms-btn" id="ms-btn-nguon" onclick="msToggle('nguon')">Nguồn giao</button>
+          <div class="ms-panel" id="ms-panel-nguon"></div>
+        </div>
       </div>
       <div class="filter-row">
         <input class="filter-input" id="fl-tu-khoa" placeholder="Nhập nội dung, số văn bản, đơn vị hoặc người phụ trách..." oninput="apDungLoc()">
@@ -838,7 +861,7 @@ let danhMucDonVi = []; // danh sách đơn vị đã biết, dùng cho ô lọc 
 // Danh sách đơn vị chính thức của xã Bà Nà — dùng CỐ ĐỊNH cho ô tick chọn
 // "Đơn vị thực hiện" ở form Thêm nhiệm vụ mới (không lấy tự động theo dữ liệu
 // lịch sử nữa, vì dữ liệu cũ có nhiều tên viết tắt/không thống nhất). Ô lọc
-// "Đơn vị thực hiện" ngoài bảng (fl-don-vi) vẫn lấy theo danhMucDonVi như cũ,
+// "Đơn vị thực hiện" ngoài bảng (bộ lọc chọn nhiều, khóa "donVi") vẫn lấy theo danhMucDonVi như cũ,
 // không đổi, để lọc được cả các tên đơn vị cũ từng xuất hiện trong dữ liệu.
 const DON_VI_CHINH_THUC = [
   'Văn phòng HĐND và UBND xã',
@@ -1021,32 +1044,127 @@ function capNhatDuLieu(data) {
 
   document.getElementById('db-ngay-tai').textContent = data.ngayTai || '—';
 
-  // Cập nhật dropdown
+  // Cập nhật danh sách lựa chọn cho các bộ lọc chọn nhiều
   const danhMuc = data.danhMuc || {};
-  capNhatDropdown('fl-loai', danhMuc.loaiNhiemVu || []);
-  capNhatDropdown('fl-don-vi', danhMuc.donVi || []);
-  capNhatDropdown('fl-nguon', danhMuc.nguonGiao || []);
-  capNhatDropdown('fl-lanh-dao', danhMuc.lanhDao || []);
+  msDatTuyChon('loai', danhMuc.loaiNhiemVu || []);
+  msDatTuyChon('donVi', danhMuc.donVi || []);
+  msDatTuyChon('nguon', danhMuc.nguonGiao || []);
+  msDatTuyChon('lanhDao', danhMuc.lanhDao || []);
   danhMucDonVi = danhMuc.donVi || [];
 
   // Danh mục Chuyên viên: lấy trực tiếp từ dữ liệu nhiệm vụ (không phụ thuộc
   // việc máy chủ có trả sẵn danh mục này trong danhMuc hay không).
   const dsChuyenVien = [...new Set(danhSachGoc.map(nv => (nv.chuyenVien||'').trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'vi'));
-  capNhatDropdown('fl-chuyen-vien', dsChuyenVien);
+  msDatTuyChon('chuyenVien', dsChuyenVien);
 
   apDungLoc();
 }
 
-function capNhatDropdown(id, items) {
-  const sel = document.getElementById(id);
-  const cur = sel.value;
-  const first = sel.options[0].text;
-  sel.innerHTML = `<option value="">${first}</option>`;
-  items.forEach(v => {
-    if (v) sel.add(new Option(v, v));
-  });
-  sel.value = cur;
+// ===== BỘ LỌC CHỌN NHIỀU (multi-select) =====
+// Thay cho <select> chỉ chọn được 1 giá trị. Mỗi bộ lọc lưu 1 mảng các giá
+// trị đang được chọn trong `boLocNhieu` — mảng rỗng nghĩa là không lọc theo
+// tiêu chí đó (khớp tất cả), giống hệt hành vi cũ khi chọn "Tất cả".
+const boLocNhieu = { loai: [], donVi: [], tinhTrang: [], chuyenVien: [], lanhDao: [], nguon: [] };
+
+const MS_NHAN = {
+  loai: 'Loại nhiệm vụ', donVi: 'Đơn vị thực hiện', tinhTrang: 'Tình trạng',
+  chuyenVien: 'Chuyên viên', lanhDao: 'Lãnh đạo phụ trách', nguon: 'Nguồn giao',
+};
+
+// Danh sách lựa chọn hiện có cho từng bộ lọc. "Tình trạng" cố định sẵn,
+// các bộ lọc còn lại được nạp động theo dữ liệu (msDatTuyChon).
+const MS_TUY_CHON = {
+  loai: [], donVi: [], chuyenVien: [], lanhDao: [], nguon: [],
+  tinhTrang: ['Chưa thực hiện','Đang thực hiện','Sắp đến hạn','Đến hạn','Trễ hạn','Hoàn thành','Không thực hiện'],
+};
+
+function msDongTatCa() {
+  document.querySelectorAll('.ms-panel.open').forEach(p => p.classList.remove('open'));
 }
+
+function msToggle(key) {
+  const panel = document.getElementById(`ms-panel-${key}`);
+  if (!panel) return;
+  const dangMo = panel.classList.contains('open');
+  msDongTatCa();
+  panel.classList.toggle('open', !dangMo);
+}
+
+function msVeChonTatCa(key) {
+  return MS_TUY_CHON[key].length > 0 && boLocNhieu[key].length === MS_TUY_CHON[key].length;
+}
+
+function msRenderPanel(key) {
+  const panel = document.getElementById(`ms-panel-${key}`);
+  if (!panel) return;
+  const tuyChon = MS_TUY_CHON[key];
+  const daChon = new Set(boLocNhieu[key]);
+  let html = '';
+  if (key === 'tinhTrang') {
+    html += `<label class="ms-item ms-all"><input type="checkbox" ${msVeChonTatCa(key) ? 'checked' : ''} onchange="msToggleTatCa('${key}', this.checked)"> Chọn tất cả</label><div class="ms-sep"></div>`;
+  }
+  if (!tuyChon.length) {
+    html += `<div class="ms-rong">Không có dữ liệu</div>`;
+  } else {
+    tuyChon.forEach(v => {
+      html += `<label class="ms-item"><input type="checkbox" value="${wa_escAttr(v)}" ${daChon.has(v) ? 'checked' : ''} onchange="msToggleGiaTri('${key}', this.value, this.checked)"> ${wa_esc(v)}</label>`;
+    });
+  }
+  panel.innerHTML = html;
+}
+
+function msToggleGiaTri(key, gia, dang) {
+  const arr = boLocNhieu[key];
+  const idx = arr.indexOf(gia);
+  if (dang && idx === -1) arr.push(gia);
+  if (!dang && idx !== -1) arr.splice(idx, 1);
+  msCapNhatNhan(key);
+  if (key === 'tinhTrang') msRenderPanel(key); // cập nhật lại trạng thái ô "Chọn tất cả"
+  apDungLoc();
+}
+
+function msToggleTatCa(key, dang) {
+  boLocNhieu[key] = dang ? [...MS_TUY_CHON[key]] : [];
+  msCapNhatNhan(key);
+  msRenderPanel(key);
+  apDungLoc();
+}
+
+function msCapNhatNhan(key) {
+  const btn = document.getElementById(`ms-btn-${key}`);
+  if (!btn) return;
+  const n = boLocNhieu[key].length;
+  btn.classList.toggle('ms-active', n > 0);
+  if (!n) btn.textContent = MS_NHAN[key];
+  else if (n === 1) btn.textContent = boLocNhieu[key][0];
+  else btn.textContent = `${MS_NHAN[key]} (${n})`;
+}
+
+// Nạp lại danh sách lựa chọn cho 1 bộ lọc (gọi khi tải/làm mới dữ liệu).
+// Tự bỏ khỏi lựa chọn đang chọn những giá trị không còn tồn tại nữa.
+function msDatTuyChon(key, items) {
+  MS_TUY_CHON[key] = (items || []).filter(Boolean);
+  boLocNhieu[key] = boLocNhieu[key].filter(v => MS_TUY_CHON[key].includes(v));
+  msCapNhatNhan(key);
+  msRenderPanel(key);
+}
+
+function msDatLaiTatCa() {
+  Object.keys(boLocNhieu).forEach(key => {
+    boLocNhieu[key] = [];
+    msCapNhatNhan(key);
+    msRenderPanel(key);
+  });
+}
+
+document.addEventListener('click', e => {
+  if (e.target.closest('.ms-wrap')) return;
+  msDongTatCa();
+});
+
+// Khởi tạo panel "Tình trạng" ngay khi trang tải (danh sách của nó cố định,
+// không phụ thuộc dữ liệu từ máy chủ như các bộ lọc khác).
+msRenderPanel('tinhTrang');
 
 // ===== LÀM MỚI =====
 async function lamMoi() {
@@ -1062,21 +1180,22 @@ async function lamMoi() {
 // Áp dụng mọi bộ lọc (loại, đơn vị, tình trạng, nguồn, lãnh đạo, chuyên viên, từ khóa, quan trọng)
 // NHƯNG KHÔNG áp dụng bộ lọc theo thẻ KPI (tình trạng thực tế) — dùng làm nền để tính số trên từng thẻ KPI.
 function layDanhSachSauLocCoBan() {
-  const loai = document.getElementById('fl-loai').value;
-  const donVi = boDau(document.getElementById('fl-don-vi').value);
-  const tinhTrang = document.getElementById('fl-tinh-trang').value;
-  const nguon = document.getElementById('fl-nguon').value;
-  const lanhDao = document.getElementById('fl-lanh-dao').value;
-  const chuyenVien = document.getElementById('fl-chuyen-vien').value;
+  const { loai, donVi, tinhTrang, nguon, lanhDao, chuyenVien } = boLocNhieu;
   const tuKhoa = boDau(document.getElementById('fl-tu-khoa').value);
 
   return danhSachGoc.filter(nv => {
-    if (loai && nv.loaiNhiemVu !== loai) return false;
-    if (donVi && !boDau(nv.donViThucHien||'').includes(donVi)) return false;
-    if (tinhTrang && nv.tinhTrangThucTe !== tinhTrang) return false;
-    if (nguon && nv.nguonGiao !== nguon) return false;
-    if (lanhDao && nv.lanhDao !== lanhDao) return false;
-    if (chuyenVien && nv.chuyenVien !== chuyenVien) return false;
+    if (loai.length && !loai.includes(nv.loaiNhiemVu)) return false;
+    // Đơn vị thực hiện: giữ lại kiểu so khớp "chứa chuỗi" như trước đây (không
+    // phân biệt dấu) — để khớp được cả khi tên đơn vị trong dữ liệu viết hơi
+    // khác so với danh mục (vd thiếu/thừa chữ "xã", "Phòng"...).
+    if (donVi.length) {
+      const dvNv = boDau(nv.donViThucHien || '');
+      if (!donVi.some(v => dvNv.includes(boDau(v)))) return false;
+    }
+    if (tinhTrang.length && !tinhTrang.includes(nv.tinhTrangThucTe)) return false;
+    if (nguon.length && !nguon.includes(nv.nguonGiao)) return false;
+    if (lanhDao.length && !lanhDao.includes(nv.lanhDao)) return false;
+    if (chuyenVien.length && !chuyenVien.includes(nv.chuyenVien)) return false;
     if (ganSaoFilter && !nv.ganSao) return false;
     if (tuKhoa) {
       const nd = boDau([nv.maNhiemVu,nv.loaiNhiemVu,nv.nguonGiao,nv.donViThucHien,nv.nhiemVu,nv.vanBan,nv.chuyenVien,nv.lanhDao].join(' '));
@@ -1171,12 +1290,7 @@ function toggleQuanTrong() {
 }
 
 function xoaLoc() {
-  document.getElementById('fl-loai').value = '';
-  document.getElementById('fl-don-vi').value = '';
-  document.getElementById('fl-tinh-trang').value = '';
-  document.getElementById('fl-nguon').value = '';
-  document.getElementById('fl-lanh-dao').value = '';
-  document.getElementById('fl-chuyen-vien').value = '';
+  msDatLaiTatCa();
   document.getElementById('fl-tu-khoa').value = '';
   ganSaoFilter = false;
   document.getElementById('btn-qt').classList.remove('active');
@@ -1277,6 +1391,7 @@ function xemChiTiet(idx) {
     ['Nội dung nhiệm vụ', nv.nhiemVu],
     ['Văn bản/Số ký hiệu', nv.vanBan],
     ['Ngày đến văn bản', nv.ngayDenVanBan],
+    ['Ngày giao nhiệm vụ', nv.ngayGiao],
     ['Thời hạn', nv.thoiHan],
     ['Tiến độ thực hiện', nv.tienDo],
     ['Tự đánh giá', nv.tuDanhGia],
@@ -1909,6 +2024,13 @@ function bcDinhDangNgay(d) {
   return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`;
 }
 
+// str có nằm trong khoảng [tuNgay, denNgay] hay không (so theo ngày, đều đã ở 00:00 +07:00)
+function bcTrongKhoang(str, tuNgay, denNgay) {
+  const d = bcChuyenNgay(str);
+  if (!d) return false;
+  return d >= tuNgay && d <= denNgay;
+}
+
 // Gộp danh sách nhiệm vụ theo đơn vị thực hiện -> "03 Phòng Kinh tế, 01 Công an xã"
 function bcGhepDonVi(list) {
   const dem = {};
@@ -1961,6 +2083,13 @@ function bcDoanVanNhom(tk) {
     + `${cauDangTH}${cauKhongTH}</p>`;
 }
 
+// Lưu danh sách mã nhiệm vụ mỗi lần xuất báo cáo — để lần xuất SAU, trên
+// cùng máy/trình duyệt này, biết được nhiệm vụ nào là mới xuất hiện kể từ
+// lần trước. Đây là lưu tạm trên trình duyệt (localStorage), không đồng bộ
+// qua máy khác — nếu đổi máy hoặc xóa dữ liệu trình duyệt, mục này sẽ tính
+// lại từ đầu.
+const BC_SNAPSHOT_KEY = 'baNa_baoCaoTuanSnapshot';
+
 const BC_NHOM = [
   { loai: 'Nhiệm vụ thành phố',     tieuDe: 'Nhiệm vụ trên phần mềm theo dõi nhiệm vụ của thành phố' },
   { loai: 'TBKL Đảng ủy',           tieuDe: 'Nhiệm vụ của Đảng ủy xã giao' },
@@ -1996,6 +2125,57 @@ async function xuatBaoCaoTuan() {
   const dsDonViTreHan = Object.entries(treHanTong).sort((a, b) => b[1] - a[1]);
   const topDonVi = dsDonViTreHan.slice(0, 3).map(([dv, n]) => `${wa_esc(dv)} (${n} nhiệm vụ)`).join(', ');
 
+  // ===== Phần "Thay đổi trong tuần" =====
+  const tuNgay = new Date(homNay);
+  tuNgay.setDate(tuNgay.getDate() - 6); // cửa sổ 7 ngày, tính cả hôm nay
+
+  const hoanThanhTrongTuan = danhSachGoc.filter(nv => nv.tinhTrangThucTe === 'Hoàn thành' && bcTrongKhoang(nv.ngayCapNhatCuoi, tuNgay, homNay));
+  const treHanMoiTrongTuan = danhSachGoc.filter(nv => nv.tinhTrangThucTe === 'Trễ hạn' && bcTrongKhoang(nv.thoiHan, tuNgay, homNay));
+
+  // Nhiệm vụ mới giao trong tuần. Ưu tiên dùng trường "ngayGiao" thật (đọc từ
+  // cột "Ngày giao nhiệm vụ" trên Sheet, do Apps Script ghi) — chính xác và
+  // đúng trên mọi máy/trình duyệt. Nếu hệ thống CHƯA có trường này (Apps
+  // Script chưa cập nhật), tự động lùi về cách cũ: so với lần xuất báo cáo
+  // gần nhất TRÊN MÁY NÀY (lưu tạm bằng localStorage).
+  const coTruongNgayGiao = danhSachGoc.some(nv => nv.ngayGiao);
+  let moiXuatHien = [], coSnapshotCu = false, ngaySnapshotCu = '';
+
+  if (coTruongNgayGiao) {
+    moiXuatHien = danhSachGoc.filter(nv => bcTrongKhoang(nv.ngayGiao, tuNgay, homNay));
+  } else {
+    try {
+      const raw = localStorage.getItem(BC_SNAPSHOT_KEY);
+      if (raw) {
+        const cu = JSON.parse(raw);
+        coSnapshotCu = true;
+        ngaySnapshotCu = cu.ngay || '';
+        const dsCu = new Set(cu.maNhiemVu || []);
+        moiXuatHien = danhSachGoc.filter(nv => nv.maNhiemVu && !dsCu.has(nv.maNhiemVu));
+      }
+      localStorage.setItem(BC_SNAPSHOT_KEY, JSON.stringify({
+        ngay: homNay.toISOString().slice(0, 10),
+        maNhiemVu: danhSachGoc.map(nv => nv.maNhiemVu).filter(Boolean),
+      }));
+    } catch (e) { /* trình duyệt chặn localStorage — bỏ qua mục này */ }
+  }
+
+  let thayDoiHtml = `<p class="bc-h1"><b>II. NHỮNG THAY ĐỔI TRONG TUẦN (${bcDinhDangNgay(tuNgay)} – ${ngayBC})</b></p>`;
+  thayDoiHtml += `<p>- Hoàn thành trong tuần: <b>${hoanThanhTrongTuan.length}</b> nhiệm vụ`
+    + (hoanThanhTrongTuan.length ? ` (${bcGhepDonVi(hoanThanhTrongTuan)})` : '') + `.</p>`;
+  thayDoiHtml += `<p>- Mới phát sinh trễ hạn trong tuần: <b>${treHanMoiTrongTuan.length}</b> nhiệm vụ`
+    + (treHanMoiTrongTuan.length ? ` (${bcGhepDonVi(treHanMoiTrongTuan)})` : '') + `.</p>`;
+  if (coTruongNgayGiao) {
+    thayDoiHtml += `<p>- Nhiệm vụ mới giao trong tuần: <b>${moiXuatHien.length}</b> nhiệm vụ`
+      + (moiXuatHien.length ? ` (${bcGhepDonVi(moiXuatHien)})` : '') + `.</p>`;
+  } else if (coSnapshotCu) {
+    thayDoiHtml += `<p>- Nhiệm vụ mới xuất hiện trong hệ thống kể từ lần xuất báo cáo gần nhất trên máy này (${bcDinhDangNgay(bcChuyenNgay(ngaySnapshotCu)) || ngaySnapshotCu}): <b>${moiXuatHien.length}</b> nhiệm vụ`
+      + (moiXuatHien.length ? ` (${bcGhepDonVi(moiXuatHien)})` : '') + `.</p>`;
+  } else {
+    thayDoiHtml += `<p><i>[Đây là lần đầu xuất báo cáo trên máy/trình duyệt này nên chưa so sánh được nhiệm vụ mới xuất hiện — từ lần xuất báo cáo tiếp theo trên máy này sẽ có mục này.]</i></p>`;
+  }
+  thayDoiHtml += `<p><i>Ghi chú: mục hoàn thành/trễ hạn tính theo "ngày cập nhật gần nhất"/"thời hạn" trong 7 ngày qua`
+    + (coTruongNgayGiao ? '; mục nhiệm vụ mới giao tính theo cột "Ngày giao nhiệm vụ" trên Sheet.' : '; mục nhiệm vụ mới xuất hiện chỉ so sánh được trên cùng máy đã dùng để xuất báo cáo lần trước (hệ thống chưa có cột "Ngày giao nhiệm vụ").') + `</i></p>`;
+
   const danhGiaHtml = `<p><i>[Gợi ý — chị xem lại, chỉnh sửa trước khi trình ký]</i> Tính đến ngày ${ngayBC}, hệ thống ghi nhận tổng cộng ${tongTatCa} nhiệm vụ đang theo dõi, trong đó có ${tongTreHanTatCa} nhiệm vụ trễ hạn (gồm hoàn thành trễ hạn và đang thực hiện quá hạn).`
     + (dsDonViTreHan.length ? ` Đơn vị có số nhiệm vụ trễ hạn nhiều nhất là ${topDonVi}. Cần có biện pháp đôn đốc, chỉ đạo xử lý dứt điểm trong tuần tới.` : ' Không có nhiệm vụ trễ hạn đáng chú ý trong kỳ báo cáo này.')
     + `</p>`;
@@ -2020,6 +2200,7 @@ async function xuatBaoCaoTuan() {
     <p class="bc-title">(Tính đến ngày ${ngayBC})</p>
     <p class="bc-h1"><b>I. KẾT QUẢ THỰC HIỆN NHIỆM VỤ</b></p>
     ${mucHtml}
+    ${thayDoiHtml}
     <p class="bc-title" style="margin-top:24pt">BÁO CÁO ĐÁNH GIÁ TÌNH HÌNH THỰC HIỆN NHIỆM VỤ</p>
     ${danhGiaHtml}
     <p class="bc-h1"><b>KẾT LUẬN &amp; ĐỀ XUẤT CHỈ ĐẠO</b></p>
@@ -2143,10 +2324,7 @@ async function xuatExcel() {
 // Gọi khi đăng xuất VÀ khi đăng nhập, để tài khoản mới đăng nhập vào không bị
 // dính lại bộ lọc/đơn vị của tài khoản trước đó dùng chung 1 tab trình duyệt.
 function datLaiBoLoc() {
-  ['fl-loai','fl-don-vi','fl-tinh-trang','fl-nguon','fl-lanh-dao','fl-chuyen-vien'].forEach(id => {
-    const sel = document.getElementById(id);
-    if (sel) sel.value = '';
-  });
+  msDatLaiTatCa();
   const tk = document.getElementById('fl-tu-khoa');
   if (tk) tk.value = '';
 
