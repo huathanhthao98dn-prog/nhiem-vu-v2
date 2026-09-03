@@ -2083,6 +2083,40 @@ function bcDoanVanNhom(tk) {
     + `${cauDangTH}${cauKhongTH}</p>`;
 }
 
+// ===== Phụ lục kèm báo cáo tuần: bảng chi tiết nhiệm vụ =====
+// Số ngày đã trễ tính đến hôm nay (thời hạn càng cũ thì số càng lớn).
+function bcSoNgayTre(nv) {
+  const hanChot = bcChuyenNgay(nv.thoiHan);
+  if (!hanChot) return '';
+  const homNay = new Date(new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Ho_Chi_Minh'}) + 'T00:00:00+07:00');
+  const soNgay = Math.round((homNay - hanChot) / 86400000);
+  return soNgay > 0 ? soNgay : '';
+}
+
+// Dựng 1 bảng phụ lục (dạng HTML <table>) từ danh sách nhiệm vụ.
+// coCotTre: thêm cột "Số ngày trễ". coCotNgayGiao: thêm cột "Ngày giao".
+function bcBangPhuLuc(list, { coCotTre = false, coCotNgayGiao = false } = {}) {
+  if (!list.length) return '<p><i>Không có nhiệm vụ nào.</i></p>';
+  const cotDau = ['STT', 'Mã nhiệm vụ', 'Nội dung nhiệm vụ', 'Đơn vị thực hiện', 'Nguồn giao', 'Thời hạn'];
+  if (coCotNgayGiao) cotDau.push('Ngày giao');
+  if (coCotTre) cotDau.push('Số ngày trễ');
+  cotDau.push('Tình trạng', 'Chuyên viên theo dõi', 'Lãnh đạo phụ trách', 'Tiến độ / Giải trình');
+
+  const theadHtml = `<tr>${cotDau.map(c => `<th>${wa_esc(c)}</th>`).join('')}</tr>`;
+  const rowsHtml = list.map((nv, i) => {
+    const cells = [
+      i + 1, wa_esc(nv.maNhiemVu), wa_esc(nv.nhiemVu), wa_esc(nv.donViThucHien),
+      wa_esc(nv.nguonGiao), wa_esc(nv.thoiHan || '—'),
+    ];
+    if (coCotNgayGiao) cells.push(wa_esc(nv.ngayGiao || ''));
+    if (coCotTre) cells.push(bcSoNgayTre(nv));
+    cells.push(wa_esc(nv.tinhTrangThucTe), wa_esc(nv.chuyenVien), wa_esc(nv.lanhDao), wa_esc(nv.tienDo || nv.giaiTrinh || ''));
+    return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
+  }).join('');
+
+  return `<table class="bc-bang"><thead>${theadHtml}</thead><tbody>${rowsHtml}</tbody></table>`;
+}
+
 // Lưu danh sách mã nhiệm vụ mỗi lần xuất báo cáo — để lần xuất SAU, trên
 // cùng máy/trình duyệt này, biết được nhiệm vụ nào là mới xuất hiện kể từ
 // lần trước. Đây là lưu tạm trên trình duyệt (localStorage), không đồng bộ
@@ -2195,6 +2229,22 @@ async function xuatBaoCaoTuan() {
 
   const mucHtml = muc.map((m, i) => `<p class="bc-h2"><b>${i+1}. ${wa_esc(m.tieuDe)}</b></p>${m.html}`).join('\n');
 
+  // ===== Phụ lục: bảng chi tiết kèm theo báo cáo =====
+  // Phụ lục 1 — nhiệm vụ ĐANG trễ hạn (chưa hoàn thành), sắp theo hạn cũ nhất
+  // trước, để tiện rà soát/đôn đốc theo mức độ khẩn cấp.
+  const layThoiGianHan = nv => { const d = bcChuyenNgay(nv.thoiHan); return d ? d.getTime() : Infinity; };
+  const dsTreHanPhuLuc = danhSachGoc
+    .filter(nv => nv.tinhTrangThucTe === 'Trễ hạn')
+    .sort((a, b) => layThoiGianHan(a) - layThoiGianHan(b));
+
+  const phuLucHtml = `
+    <p class="bc-title" style="margin-top:24pt; page-break-before:always">PHỤ LỤC</p>
+    <p class="bc-h1"><b>Phụ lục 1. Danh sách nhiệm vụ đang trễ hạn</b> (${dsTreHanPhuLuc.length} nhiệm vụ, tính đến ngày ${ngayBC})</p>
+    ${bcBangPhuLuc(dsTreHanPhuLuc, { coCotTre: true })}
+    <p class="bc-h1"><b>Phụ lục 2. Danh sách nhiệm vụ mới giao trong tuần</b> (${moiXuatHien.length} nhiệm vụ, ${bcDinhDangNgay(tuNgay)} – ${ngayBC})</p>
+    ${bcBangPhuLuc(moiXuatHien, { coCotNgayGiao: coTruongNgayGiao })}
+  `;
+
   const noiDung = `
     <p class="bc-title">BÁO CÁO KẾT QUẢ THEO DÕI THỰC HIỆN NHIỆM VỤ</p>
     <p class="bc-title">(Tính đến ngày ${ngayBC})</p>
@@ -2205,6 +2255,7 @@ async function xuatBaoCaoTuan() {
     ${danhGiaHtml}
     <p class="bc-h1"><b>KẾT LUẬN &amp; ĐỀ XUẤT CHỈ ĐẠO</b></p>
     ${ketLuanHtml}
+    ${phuLucHtml}
   `;
 
   const htmlDoc = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
@@ -2220,6 +2271,10 @@ async function xuatBaoCaoTuan() {
   .bc-h1 { margin-top: 14pt; }
   .bc-h2 { margin-top: 10pt; margin-bottom: 4pt; }
   i { color: #7c3aed; }
+  .bc-bang { width: 100%; border-collapse: collapse; font-size: 10pt; margin: 6pt 0 14pt 0; }
+  .bc-bang th, .bc-bang td { border: 1px solid #000; padding: 4pt 5pt; vertical-align: top; }
+  .bc-bang th { background: #f0f0f0; font-weight: bold; text-align: center; }
+  .bc-bang td { text-align: left; }
 </style>
 </head>
 <body>
@@ -2235,7 +2290,7 @@ ${noiDung}
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  hienToast(`Đã xuất ${ten}. Nhớ bổ sung phần Đơn thư/Kiến nghị cử tri và xem lại phần Đánh giá/Kết luận (chữ tím) trước khi trình ký.`);
+  hienToast(`Đã xuất ${ten}. Nhớ bổ sung phần Đơn thư/Kiến nghị cử tri, xem lại phần Đánh giá/Kết luận (chữ tím), và kiểm tra 2 bảng Phụ lục ở cuối file trước khi trình ký.`);
 }
 
 async function xuatExcel() {
