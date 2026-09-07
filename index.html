@@ -479,6 +479,24 @@
   .btn-luu:hover { background: #0f3657; }
   .btn-luu:disabled { background: #94a3b8; cursor: not-allowed; }
 
+  /* Form Thêm nhiệm vụ mới — nhiều "dòng nhiệm vụ" trong cùng 1 văn bản */
+  .tm-hang {
+    border: 1.5px solid #e2e8f0; border-radius: 9px; padding: 14px;
+    margin-bottom: 12px; background: #f8fafc; position: relative;
+  }
+  .tm-hang-tieude { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .tm-hang-so { font-size: 12.5px; font-weight: 800; color: #174c78; }
+  .tm-hang-xoa {
+    border: none; background: transparent; color: #b91c1c;
+    font-weight: 700; cursor: pointer; font-size: 12.5px; padding: 2px 6px;
+  }
+  .tm-hang-xoa:hover { text-decoration: underline; }
+  .btn-them-dong {
+    width: 100%; padding: 10px; border: 1.5px dashed #94a3b8; border-radius: 8px;
+    background: #fff; color: #174c78; font-weight: 700; font-size: 13.5px; cursor: pointer; margin-top: 4px;
+  }
+  .btn-them-dong:hover { background: #f1f5f9; border-color: #174c78; }
+
   .btn-cap-nhat-row {
     padding: 5px 10px; border: 1px solid #16a34a; border-radius: 6px;
     background: #fff; color: #16a34a; cursor: pointer; font-size: 12px; margin-left: 6px;
@@ -857,6 +875,8 @@ let ganSaoFilter = false;
 let laVP = false; // true nếu tài khoản thuộc nhóm chu_so_huu / quan_tri / van_phong
 let cnDangSua = null; // vị trí (trong danhSachLoc) nhiệm vụ đang mở ở modal Cập nhật
 let danhMucDonVi = []; // danh sách đơn vị đã biết, dùng cho ô lọc và form Thêm nhiệm vụ
+let tmSoLuongDong = 0; // đếm tăng dần để tạo id duy nhất cho từng "dòng nhiệm vụ" trong form Thêm nhiệm vụ
+let tmDsHangId = []; // danh sách id các dòng nhiệm vụ đang hiển thị trong form Thêm nhiệm vụ (cùng 1 văn bản)
 
 // Danh sách đơn vị chính thức của xã Bà Nà — dùng CỐ ĐỊNH cho ô tick chọn
 // "Đơn vị thực hiện" ở form Thêm nhiệm vụ mới (không lấy tự động theo dữ liệu
@@ -1861,63 +1881,50 @@ async function xuLyTuChoi(i) {
 }
 
 // ----- MODAL THÊM NHIỆM VỤ MỚI (chỉ laVP) -----
+// Hỗ trợ 1 văn bản có NHIỀU nhiệm vụ con, mỗi nhiệm vụ có nội dung/đơn vị/
+// thời hạn riêng: phần "Thông tin văn bản" nhập 1 lần, dùng chung cho mọi
+// "dòng nhiệm vụ" bên dưới; có thể bấm "+ Thêm nhiệm vụ" để thêm nhiều dòng
+// rồi lưu tất cả cùng lúc (mỗi dòng vẫn gọi themNhiemVu riêng ở phía server,
+// chỉ khác là gộp lại thành 1 lượt bấm Lưu cho gọn).
 function moThemMoi() {
+  tmSoLuongDong = 0;
+  tmDsHangId = [];
   document.getElementById('them-body').innerHTML = `
-    <div class="form-row">
-      <div class="form-field"><label>Loại nhiệm vụ</label>
-        <select id="tm-loai">
-          <option value="">-- Chọn loại nhiệm vụ --</option>
-          <option>Nhiệm vụ thường xuyên</option>
-          <option>Nhiệm vụ theo Kế hoạch</option>
-          <option>Nhiệm vụ thành phố</option>
-          <option>TBKL Đảng ủy</option>
-        </select>
-      </div>
-      <div class="form-field"><label>Nguồn giao</label><input id="tm-nguon" type="text"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-field">
-        <label>Đơn vị thực hiện *</label>
-        <div class="donvi-picker" id="tm-donVi-picker">
-          ${DON_VI_CHINH_THUC.map(dv => `
-            <label class="donvi-item"><input type="checkbox" value="${wa_escAttr(dv)}"> ${wa_esc(dv)}</label>
-          `).join('')}
+    <datalist id="tm-dsDonViChinhThuc">
+      ${DON_VI_CHINH_THUC.map(dv => `<option value="${wa_escAttr(dv)}">`).join('')}
+    </datalist>
+    <div class="form-section">
+      <div class="form-section-title">Thông tin văn bản (áp dụng cho tất cả nhiệm vụ bên dưới)</div>
+      <div class="form-row">
+        <div class="form-field"><label>Loại nhiệm vụ</label>
+          <select id="tm-loai">
+            <option value="">-- Chọn loại nhiệm vụ --</option>
+            <option>Nhiệm vụ thường xuyên</option>
+            <option>Nhiệm vụ theo Kế hoạch</option>
+            <option>Nhiệm vụ thành phố</option>
+            <option>TBKL Đảng ủy</option>
+          </select>
         </div>
-        <input id="tm-donVi-khac" type="text" placeholder="Đơn vị khác (nếu chưa có ở trên, cách nhau dấu phẩy)" style="margin-top:6px">
+        <div class="form-field"><label>Nguồn giao</label><input id="tm-nguon" type="text"></div>
       </div>
-      <div class="form-field"><label>Đơn vị/Cơ quan phối hợp</label><input id="tm-phoiHop" type="text"></div>
-    </div>
-    <div class="form-row full"><div class="form-field">
-      <label>Nội dung nhiệm vụ *</label>
-      <textarea id="tm-noiDung"></textarea>
-    </div></div>
-    <div class="form-row">
-      <div class="form-field"><label>Văn bản/Số ký hiệu</label><input id="tm-vanBan" type="text"></div>
-      <div class="form-field"><label>Ngày đến văn bản</label><input id="tm-ngayDenVanBan" type="date"></div>
-    </div>
-    <div class="form-row full"><div class="form-field">
-      <label>Chỉ đạo/Giao nhiệm vụ</label>
-      <textarea id="tm-chiDao"></textarea>
-    </div></div>
-    <div class="form-row">
-      <div class="form-field"><label>Thời hạn *</label><input id="tm-thoiHan" type="date"></div>
-      <div class="form-field"><label>Chuyên viên phụ trách</label><input id="tm-chuyenVien" type="text"></div>
-    </div>
-    <div class="form-row">
-      <div class="form-field">
-        <label>Lãnh đạo phụ trách</label>
-        <select id="tm-lanhDao">
-          <option value="">-- Chọn lãnh đạo --</option>
-          ${['CT, các PCT','Đ/c Lê Minh Tuấn','Đ/c Lê Đức Trí','Đ/c Nguyễn Tấn Phát']
-            .map(l => `<option>${l}</option>`).join('')}
-        </select>
+      <div class="form-row">
+        <div class="form-field"><label>Văn bản/Số ký hiệu</label><input id="tm-vanBan" type="text"></div>
+        <div class="form-field"><label>Ngày đến văn bản</label><input id="tm-ngayDenVanBan" type="date"></div>
       </div>
-      <div class="form-field" style="flex-direction:row;align-items:center;gap:8px;margin-top:22px">
-        <label style="margin:0;display:flex;align-items:center;gap:6px"><input id="tm-ganSao" type="checkbox" style="width:auto"> Gắn sao quan trọng</label>
+      <div class="form-row">
+        <div class="form-field"><label>Đơn vị/Cơ quan phối hợp</label><input id="tm-phoiHop" type="text"></div>
+        <div class="form-field"></div>
       </div>
+      <div class="form-field"><label>Chỉ đạo/Giao nhiệm vụ</label><textarea id="tm-chiDao"></textarea></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Danh sách nhiệm vụ (mỗi nhiệm vụ có nội dung, đơn vị, thời hạn riêng)</div>
+      <div id="tm-dsNhiemVu"></div>
+      <button type="button" class="btn-them-dong" onclick="tmThemDong()">+ Thêm nhiệm vụ (cùng văn bản này)</button>
     </div>
     <p class="form-hint">Tình trạng nhiệm vụ mới sẽ tự tính theo thời hạn, không cần chọn tay.</p>
   `;
+  tmThemDong();
   document.getElementById('modal-them').classList.add('open');
 }
 
@@ -1925,57 +1932,157 @@ function dongThemMoi() {
   document.getElementById('modal-them').classList.remove('open');
 }
 
-function layDonViDaChon() {
-  const chon = Array.from(document.querySelectorAll('#tm-donVi-picker input:checked')).map(el => el.value);
-  const khac = valOf('tm-donVi-khac');
-  if (khac) chon.push(...khac.split(',').map(s => s.trim()).filter(Boolean));
-  return chon.join(', ');
+// HTML cho 1 "dòng nhiệm vụ" trong form Thêm nhiệm vụ mới.
+function tmHangHtml(id) {
+  return `
+    <div class="tm-hang" id="tm-hang-${id}">
+      <div class="tm-hang-tieude">
+        <span class="tm-hang-so">Nhiệm vụ #<span class="tm-hang-stt">${id}</span></span>
+        <button type="button" class="tm-hang-xoa" onclick="tmXoaDong(${id})">✕ Xóa dòng</button>
+      </div>
+      <div class="form-row full"><div class="form-field">
+        <label>Nội dung nhiệm vụ *</label>
+        <textarea id="tm-noiDung-${id}" rows="2"></textarea>
+      </div></div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Đơn vị thực hiện *</label>
+          <input id="tm-donVi-${id}" type="text" list="tm-dsDonViChinhThuc"
+            placeholder="Chọn hoặc gõ tên đơn vị (cách nhau dấu phẩy nếu nhiều đơn vị)">
+        </div>
+        <div class="form-field"><label>Thời hạn *</label><input id="tm-thoiHan-${id}" type="date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Chuyên viên phụ trách</label><input id="tm-chuyenVien-${id}" type="text"></div>
+        <div class="form-field">
+          <label>Lãnh đạo phụ trách</label>
+          <select id="tm-lanhDao-${id}">
+            <option value="">-- Chọn lãnh đạo --</option>
+            ${['CT, các PCT','Đ/c Lê Minh Tuấn','Đ/c Lê Đức Trí','Đ/c Nguyễn Tấn Phát']
+              .map(l => `<option>${l}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#334155;cursor:pointer;margin-top:2px">
+        <input id="tm-ganSao-${id}" type="checkbox" style="width:auto"> Gắn sao quan trọng
+      </label>
+    </div>
+  `;
+}
+
+function tmThemDong() {
+  tmSoLuongDong++;
+  const id = tmSoLuongDong;
+  tmDsHangId.push(id);
+  document.getElementById('tm-dsNhiemVu').insertAdjacentHTML('beforeend', tmHangHtml(id));
+  tmCapNhatSoThuTu();
+}
+
+function tmXoaDong(id) {
+  if (tmDsHangId.length <= 1) { hienToast('Cần giữ lại ít nhất 1 nhiệm vụ trong form.', true); return; }
+  tmDsHangId = tmDsHangId.filter(x => x !== id);
+  document.getElementById('tm-hang-' + id)?.remove();
+  tmCapNhatSoThuTu();
+}
+
+// Đánh lại số thứ tự hiển thị (Nhiệm vụ #1, #2...) và đổi chữ trên nút Lưu
+// theo đúng số dòng đang có, để chị biết rõ sắp lưu bao nhiêu nhiệm vụ.
+function tmCapNhatSoThuTu() {
+  tmDsHangId.forEach((id, i) => {
+    const el = document.querySelector(`#tm-hang-${id} .tm-hang-stt`);
+    if (el) el.textContent = i + 1;
+  });
+  const btn = document.getElementById('them-btn-luu');
+  if (btn && !btn.disabled) {
+    btn.textContent = tmDsHangId.length > 1 ? `💾 Lưu tất cả (${tmDsHangId.length} nhiệm vụ)` : '💾 Lưu nhiệm vụ';
+  }
 }
 
 async function luuThemMoi() {
-  const donVi = layDonViDaChon();
-  const noiDung = valOf('tm-noiDung');
-  const thoiHan = valOf('tm-thoiHan');
-  if (!donVi || !noiDung || !thoiHan) {
-    hienToast('Vui lòng nhập đủ Đơn vị thực hiện, Nội dung nhiệm vụ và Thời hạn.', true);
-    return;
-  }
-  const btn = document.getElementById('them-btn-luu');
-  btn.disabled = true; btn.textContent = 'Đang lưu…';
-
-  const payload = {
-    loai: valOf('tm-loai'), donVi, nguon: valOf('tm-nguon'),
-    vanBan: valOf('tm-vanBan'), noiDung, thoiHan,
-    chuyenVien: valOf('tm-chuyenVien'), lanhDao: valOf('tm-lanhDao'),
+  const chung = {
+    loai: valOf('tm-loai'), nguon: valOf('tm-nguon'),
+    vanBan: valOf('tm-vanBan'), ngayDenVanBan: valOf('tm-ngayDenVanBan'),
     phoiHop: valOf('tm-phoiHop'), chiDao: valOf('tm-chiDao'),
-    ganSao: document.getElementById('tm-ganSao').checked,
-    ngayDenVanBan: valOf('tm-ngayDenVanBan'),
   };
 
-  try {
-    const kq = await postAPI('themNhiemVu', payload);
-    if (kq?.thanhCong) {
-      // Vá cục bộ thay vì gọi lại lamMoi(): themNhiemVu không xoá cache 6 giờ
-      // phía Apps Script, nên tải lại ngay có thể vẫn thấy dữ liệu cũ.
-      const nvMoi = {
-        maNhiemVu: kq.ma, loaiNhiemVu: payload.loai, nguonGiao: payload.nguon,
-        donViThucHien: payload.donVi, nhiemVu: payload.noiDung, vanBan: payload.vanBan,
-        donViLienQuan: payload.phoiHop, chiDao: payload.chiDao, thoiHan: payload.thoiHan,
-        tienDo: '0%', tuDanhGia: '', xacNhan: '', tinhTrang: 'Chưa thực hiện',
-        chuyenVien: payload.chuyenVien, nguoiTheoDoi: nguoiDung.tenDangNhap, lanhDao: payload.lanhDao,
-        giaiTrinh: '', linkMinhChung: '', nguoiCapNhatCuoi: '', ngayCapNhatCuoi: '',
-        ngayDenVanBan: payload.ngayDenVanBan, ganSao: payload.ganSao,
-        trangThaiDeNghi: '', trangThaiXacNhan: '', danhSachXacNhanDonVi: [],
-        duocCapNhat: true, duocXacNhan: laVP, duocGanSao: laVP, laVanPhong: laVP,
-      };
-      nvMoi.tinhTrangThucTe = tinhTinhTrang(nvMoi);
-      danhSachGoc.unshift(nvMoi);
-      hienToast('Đã thêm nhiệm vụ ' + kq.ma + '.');
-      dongThemMoi();
-      apDungLoc();
-    } else hienToast(kq?.thongBao || 'Không thể thêm nhiệm vụ.', true);
-  } catch { hienToast('Không thể kết nối máy chủ.', true); }
-  finally { btn.disabled = false; btn.textContent = '💾 Lưu nhiệm vụ'; }
+  // Đọc + kiểm tra dữ liệu từng dòng TRƯỚC khi gửi dòng nào lên máy chủ,
+  // để tránh vừa lưu được vài nhiệm vụ vừa báo thiếu dữ liệu dòng khác.
+  const dsHang = [];
+  for (let i = 0; i < tmDsHangId.length; i++) {
+    const id = tmDsHangId[i];
+    const donVi = valOf('tm-donVi-' + id).trim();
+    const noiDung = valOf('tm-noiDung-' + id).trim();
+    const thoiHan = valOf('tm-thoiHan-' + id);
+    if (!donVi || !noiDung || !thoiHan) {
+      hienToast(`Nhiệm vụ #${i + 1}: vui lòng nhập đủ Đơn vị thực hiện, Nội dung nhiệm vụ và Thời hạn.`, true);
+      return;
+    }
+    dsHang.push({
+      id, donVi, noiDung, thoiHan,
+      chuyenVien: valOf('tm-chuyenVien-' + id),
+      lanhDao: valOf('tm-lanhDao-' + id),
+      ganSao: document.getElementById('tm-ganSao-' + id).checked,
+    });
+  }
+
+  const btn = document.getElementById('them-btn-luu');
+  btn.disabled = true;
+
+  // Lưu lần lượt từng dòng (không lưu song song) để tránh chồng lấn khi
+  // cùng lúc ghi vào Google Sheet, và để có thể báo tiến độ "2/5"...
+  const maDaThem = [];
+  let coLoi = false;
+  for (let i = 0; i < dsHang.length; i++) {
+    const hang = dsHang[i];
+    btn.textContent = `Đang lưu ${i + 1}/${dsHang.length}…`;
+    const payload = {
+      loai: chung.loai, donVi: hang.donVi, nguon: chung.nguon,
+      vanBan: chung.vanBan, noiDung: hang.noiDung, thoiHan: hang.thoiHan,
+      chuyenVien: hang.chuyenVien, lanhDao: hang.lanhDao,
+      phoiHop: chung.phoiHop, chiDao: chung.chiDao,
+      ganSao: hang.ganSao, ngayDenVanBan: chung.ngayDenVanBan,
+    };
+    try {
+      const kq = await postAPI('themNhiemVu', payload);
+      if (kq?.thanhCong) {
+        // Vá cục bộ thay vì gọi lại lamMoi(): themNhiemVu không xoá cache 6 giờ
+        // phía Apps Script, nên tải lại ngay có thể vẫn thấy dữ liệu cũ.
+        const nvMoi = {
+          maNhiemVu: kq.ma, loaiNhiemVu: payload.loai, nguonGiao: payload.nguon,
+          donViThucHien: payload.donVi, nhiemVu: payload.noiDung, vanBan: payload.vanBan,
+          donViLienQuan: payload.phoiHop, chiDao: payload.chiDao, thoiHan: payload.thoiHan,
+          tienDo: '0%', tuDanhGia: '', xacNhan: '', tinhTrang: 'Chưa thực hiện',
+          chuyenVien: payload.chuyenVien, nguoiTheoDoi: nguoiDung.tenDangNhap, lanhDao: payload.lanhDao,
+          giaiTrinh: '', linkMinhChung: '', nguoiCapNhatCuoi: '', ngayCapNhatCuoi: '',
+          ngayDenVanBan: payload.ngayDenVanBan, ganSao: payload.ganSao,
+          trangThaiDeNghi: '', trangThaiXacNhan: '', danhSachXacNhanDonVi: [],
+          duocCapNhat: true, duocXacNhan: laVP, duocGanSao: laVP, laVanPhong: laVP,
+        };
+        nvMoi.tinhTrangThucTe = tinhTinhTrang(nvMoi);
+        danhSachGoc.unshift(nvMoi);
+        maDaThem.push(kq.ma);
+        // Lưu thành công dòng nào thì bỏ dòng đó ra khỏi form ngay, chỉ giữ
+        // lại các dòng bị lỗi để chị sửa và lưu lại mà không mất công gõ lại
+        // các dòng đã lưu xong.
+        document.getElementById('tm-hang-' + hang.id)?.remove();
+        tmDsHangId = tmDsHangId.filter(x => x !== hang.id);
+      } else {
+        coLoi = true;
+        hienToast(`Nhiệm vụ "${hang.noiDung.slice(0,40)}...": ${kq?.thongBao || 'Không thể thêm nhiệm vụ.'}`, true);
+      }
+    } catch {
+      coLoi = true;
+      hienToast(`Nhiệm vụ "${hang.noiDung.slice(0,40)}...": không thể kết nối máy chủ.`, true);
+    }
+  }
+
+  if (maDaThem.length) apDungLoc();
+  btn.disabled = false;
+  tmCapNhatSoThuTu();
+
+  if (maDaThem.length) hienToast(`Đã thêm ${maDaThem.length} nhiệm vụ mới (${maDaThem.join(', ')}).`);
+  if (!coLoi) dongThemMoi();
+  // Nếu còn lỗi: giữ modal mở, chỉ còn lại (các) dòng lưu chưa thành công để chị sửa và bấm Lưu lại.
 }
 
 document.getElementById('modal-cn').addEventListener('click', e => {
