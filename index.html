@@ -471,6 +471,7 @@
   }
   .donvi-item { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #334155; font-weight: 400; cursor: pointer; }
   .donvi-item input { width: auto; }
+  .donvi-picker-compact { grid-template-columns: 1fr 1fr; display: grid; gap: 5px 10px; max-height: 128px; }
   .donvi-empty { font-size: 12px; color: #94a3b8; }
   .btn-luu {
     background: #174c78; color: #fff; border: none; border-radius: 8px;
@@ -1890,9 +1891,6 @@ function moThemMoi() {
   tmSoLuongDong = 0;
   tmDsHangId = [];
   document.getElementById('them-body').innerHTML = `
-    <datalist id="tm-dsDonViChinhThuc">
-      ${DON_VI_CHINH_THUC.map(dv => `<option value="${wa_escAttr(dv)}">`).join('')}
-    </datalist>
     <div class="form-section">
       <div class="form-section-title">Thông tin văn bản (áp dụng cho tất cả nhiệm vụ bên dưới)</div>
       <div class="form-row">
@@ -1944,16 +1942,20 @@ function tmHangHtml(id) {
         <label>Nội dung nhiệm vụ *</label>
         <textarea id="tm-noiDung-${id}" rows="2"></textarea>
       </div></div>
-      <div class="form-row">
-        <div class="form-field">
-          <label>Đơn vị thực hiện *</label>
-          <input id="tm-donVi-${id}" type="text" list="tm-dsDonViChinhThuc"
-            placeholder="Chọn hoặc gõ tên đơn vị (cách nhau dấu phẩy nếu nhiều đơn vị)">
+      <div class="form-row full"><div class="form-field">
+        <label>Đơn vị thực hiện *</label>
+        <div class="donvi-picker donvi-picker-compact" id="tm-donVi-picker-${id}">
+          ${DON_VI_CHINH_THUC.map(dv => `
+            <label class="donvi-item"><input type="checkbox" value="${wa_escAttr(dv)}"> ${wa_esc(dv)}</label>
+          `).join('')}
         </div>
+        <input id="tm-donVi-khac-${id}" type="text" placeholder="Đơn vị khác (nếu chưa có ở trên, cách nhau dấu phẩy)" style="margin-top:6px">
+      </div></div>
+      <div class="form-row">
         <div class="form-field"><label>Thời hạn *</label><input id="tm-thoiHan-${id}" type="date"></div>
+        <div class="form-field"><label>Chuyên viên phụ trách</label><input id="tm-chuyenVien-${id}" type="text"></div>
       </div>
       <div class="form-row">
-        <div class="form-field"><label>Chuyên viên phụ trách</label><input id="tm-chuyenVien-${id}" type="text"></div>
         <div class="form-field">
           <label>Lãnh đạo phụ trách</label>
           <select id="tm-lanhDao-${id}">
@@ -1962,12 +1964,22 @@ function tmHangHtml(id) {
               .map(l => `<option>${l}</option>`).join('')}
           </select>
         </div>
+        <div class="form-field"></div>
       </div>
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#334155;cursor:pointer;margin-top:2px">
         <input id="tm-ganSao-${id}" type="checkbox" style="width:auto"> Gắn sao quan trọng
       </label>
     </div>
   `;
+}
+
+// Đọc "Đơn vị thực hiện" đã tick + đơn vị gõ thêm (ô "khác") của 1 dòng nhiệm vụ,
+// gộp lại thành chuỗi cách nhau dấu phẩy (giống định dạng lưu cũ).
+function tmLayDonVi(id) {
+  const chon = Array.from(document.querySelectorAll(`#tm-donVi-picker-${id} input:checked`)).map(el => el.value);
+  const khac = valOf('tm-donVi-khac-' + id);
+  if (khac) chon.push(...khac.split(',').map(s => s.trim()).filter(Boolean));
+  return chon.join(', ');
 }
 
 function tmThemDong() {
@@ -2010,7 +2022,7 @@ async function luuThemMoi() {
   const dsHang = [];
   for (let i = 0; i < tmDsHangId.length; i++) {
     const id = tmDsHangId[i];
-    const donVi = valOf('tm-donVi-' + id).trim();
+    const donVi = tmLayDonVi(id);
     const noiDung = valOf('tm-noiDung-' + id).trim();
     const thoiHan = valOf('tm-thoiHan-' + id);
     if (!donVi || !noiDung || !thoiHan) {
