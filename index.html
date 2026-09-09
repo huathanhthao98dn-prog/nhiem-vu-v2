@@ -1345,6 +1345,7 @@ function hienThiBang() {
     const badgeClass = getBadgeClass(tt);
     const saoHtml = nv.ganSao ? '★' : '☆';
     const saoStyle = nv.ganSao ? 'color:#d97706' : 'color:#d1d9e0';
+    const tdXacNhan = tienDoXacNhanDonVi(nv);
 
     const coTheCapNhat = nv.duocCapNhat || nv.duocXacNhan;
 
@@ -1365,6 +1366,7 @@ function hienThiBang() {
           ${ngay !== null && ngay < 0 ? `<span class="ngay-con">${Math.abs(ngay)} ngày</span>` : ''}
           ${ngay !== null && ngay >= 0 && ngay <= 7 ? `<span class="ngay-con" style="color:#d97706">${ngay} ngày</span>` : ''}
           ${boDau(nv.trangThaiXacNhan||'') === 'tu choi' ? `<span class="badge-mini badge-mini-tuchoi" style="margin-left:6px">❌ Bị từ chối</span>` : ''}
+          ${tdXacNhan.tong > 1 ? `<span class="badge-mini" style="margin-left:6px;background:#eef2ff;color:#3730a3" title="Số đơn vị đã được Văn phòng xác nhận hoàn thành / tổng số đơn vị thực hiện">${tdXacNhan.daXacNhan}/${tdXacNhan.tong} đơn vị</span>` : ''}
         </td>
         <td>${nv.chuyenVien||'—'}</td>
         <td>${nv.lanhDao||'—'}</td>
@@ -1490,6 +1492,19 @@ function timEntryDonVi(nv, donVi) {
   if (!ds.length) return null;
   return ds.reduce((a, b) => (new Date(b.ngayDeNghi) > new Date(a.ngayDeNghi) ? b : a));
 }
+// Đếm số đơn vị (trong TOÀN BỘ đơn vị được giao ở cột "Đơn vị thực hiện") đã
+// có xác nhận "Đã xác nhận" — dùng để hiện chỉ báo "X/Y đơn vị đã xác nhận"
+// cho nhiệm vụ có nhiều đơn vị cùng làm. So với TOÀN BỘ đơn vị được giao chứ
+// không chỉ các đơn vị đã có hoạt động, cùng cách tính với hàm
+// _kiemTraTatCaDonViXacNhan_ bên Apps Script (tránh lặp lại lỗi cũ: 1 đơn vị
+// xác nhận xong bị hiểu nhầm là "xong hết" khi các đơn vị khác chưa gửi gì).
+function tienDoXacNhanDonVi(nv) {
+  const dsDonVi = (nv.donViThucHien || '').split(',').map(s => s.trim()).filter(Boolean);
+  const daXacNhan = dsDonVi.filter(dv => (nv.danhSachXacNhanDonVi || [])
+    .some(x => x.trangThai === 'Đã xác nhận' && coCungDonVi(x.donVi, dv))).length;
+  return { tong: dsDonVi.length, daXacNhan };
+}
+
 // Gộp trạng thái xác nhận toàn nhiệm vụ từ danh sách theo đơn vị — cùng quy tắc
 // wa_docXacNhan_ dùng ở Apps Script, để KPI/badge phía trình duyệt khớp với server.
 function tinhTrangThaiXacNhanTongHop(ds) {
@@ -1660,6 +1675,12 @@ function moCapNhat(idx) {
 
   // ----- Khu vực xác nhận hoàn thành theo đơn vị -----
   html += `<div class="form-section"><div class="form-section-title">Đề nghị / Xác nhận theo đơn vị</div>`;
+  {
+    const tdXacNhan = tienDoXacNhanDonVi(nv);
+    if (tdXacNhan.tong > 1) {
+      html += `<p style="font-size:13px;color:#3730a3;font-weight:700;margin:-4px 0 10px">Tiến độ xác nhận: ${tdXacNhan.daXacNhan}/${tdXacNhan.tong} đơn vị đã được xác nhận hoàn thành.</p>`;
+    }
+  }
   if (coQuyenXacNhan) {
     const dsChoXN = (nv.danhSachXacNhanDonVi || []).filter(x => x.trangThai === 'Chờ xác nhận');
     if (!dsChoXN.length) {
@@ -1689,6 +1710,23 @@ function moCapNhat(idx) {
             ${x.lyDo ? `<span class="xn-meta">Lý do: ${wa_esc(x.lyDo)}</span>` : ''}
           </div>
         </div>`).join('') + `</div>`;
+    }
+
+    // Nhiệm vụ có nhiều đơn vị cùng thực hiện: hiển thị luôn cả những đơn vị
+    // CHƯA từng gửi đề nghị/cập nhật gì (không có trong danhSachXacNhanDonVi),
+    // để Văn phòng thấy rõ còn đơn vị nào chưa xong trước khi xác nhận —
+    // tránh hiểu nhầm "1 đơn vị xác nhận xong" là "cả nhiệm vụ đã hoàn thành".
+    const dsDonViCuaNv = (nv.donViThucHien || '').split(',').map(s => s.trim()).filter(Boolean);
+    const dsChuaCoHoatDong = dsDonViCuaNv.filter(dv => !(nv.danhSachXacNhanDonVi || []).some(x => coCungDonVi(x.donVi, dv)));
+    if (dsDonViCuaNv.length > 1 && dsChuaCoHoatDong.length) {
+      html += `<div class="xn-list" style="margin-top:10px">` + dsChuaCoHoatDong.map(dv => `
+        <div class="xn-item">
+          <div>
+            <span class="xn-donvi">${wa_esc(dv)}</span>
+            <span class="badge-mini" style="margin-left:6px;background:#f1f5f9;color:#64748b">Chưa gửi đề nghị / chưa cập nhật</span>
+          </div>
+        </div>`).join('') + `</div>`;
+      html += `<p style="color:#b45309;font-size:12px;margin-top:6px"><b>Lưu ý:</b> nhiệm vụ này có nhiều đơn vị cùng làm — chỉ nên coi là hoàn thành khi TẤT CẢ đơn vị trên đều đã được xác nhận. Đơn vị chưa gửi đề nghị ở trên có thể còn đang thực hiện dở.</p>`;
     }
   } else if (nv.duocCapNhat) {
     const donViToi = (nguoiDung.donVi || '').trim();
@@ -2214,11 +2252,12 @@ function bcSoNgayTre(nv) {
 
 // Dựng 1 bảng phụ lục (dạng HTML <table>) từ danh sách nhiệm vụ.
 // coCotTre: thêm cột "Số ngày trễ". coCotNgayGiao: thêm cột "Ngày giao".
-function bcBangPhuLuc(list, { coCotTre = false, coCotNgayGiao = false } = {}) {
+function bcBangPhuLuc(list, { coCotTre = false, coCotNgayGiao = false, coCotXacNhan = false } = {}) {
   if (!list.length) return '<p><i>Không có nhiệm vụ nào.</i></p>';
   const cotDau = ['STT', 'Mã nhiệm vụ', 'Nội dung nhiệm vụ', 'Đơn vị thực hiện', 'Nguồn giao', 'Thời hạn'];
   if (coCotNgayGiao) cotDau.push('Ngày giao');
   if (coCotTre) cotDau.push('Số ngày trễ');
+  if (coCotXacNhan) cotDau.push('Tiến độ xác nhận theo đơn vị');
   cotDau.push('Tình trạng', 'Chuyên viên theo dõi', 'Lãnh đạo phụ trách', 'Tiến độ / Giải trình');
 
   const theadHtml = `<tr>${cotDau.map(c => `<th>${wa_esc(c)}</th>`).join('')}</tr>`;
@@ -2229,6 +2268,10 @@ function bcBangPhuLuc(list, { coCotTre = false, coCotNgayGiao = false } = {}) {
     ];
     if (coCotNgayGiao) cells.push(wa_esc(nv.ngayGiao || ''));
     if (coCotTre) cells.push(bcSoNgayTre(nv));
+    if (coCotXacNhan) {
+      const td = tienDoXacNhanDonVi(nv);
+      cells.push(td.tong > 1 ? wa_esc(`${td.daXacNhan}/${td.tong} đơn vị`) : '—');
+    }
     cells.push(wa_esc(nv.tinhTrangThucTe), wa_esc(nv.chuyenVien), wa_esc(nv.lanhDao), wa_esc(nv.tienDo || nv.giaiTrinh || ''));
     return `<tr>${cells.map(c => `<td>${c}</td>`).join('')}</tr>`;
   }).join('');
@@ -2359,7 +2402,7 @@ async function xuatBaoCaoTuan() {
   const phuLucHtml = `
     <p class="bc-title" style="margin-top:24pt; page-break-before:always">PHỤ LỤC</p>
     <p class="bc-h1"><b>Phụ lục 1. Danh sách nhiệm vụ đang trễ hạn</b> (${dsTreHanPhuLuc.length} nhiệm vụ, tính đến ngày ${ngayBC})</p>
-    ${bcBangPhuLuc(dsTreHanPhuLuc, { coCotTre: true })}
+    ${bcBangPhuLuc(dsTreHanPhuLuc, { coCotTre: true, coCotXacNhan: true })}
     <p class="bc-h1"><b>Phụ lục 2. Danh sách nhiệm vụ mới giao trong tuần</b> (${moiXuatHien.length} nhiệm vụ, ${bcDinhDangNgay(tuNgay)} – ${ngayBC})</p>
     ${bcBangPhuLuc(moiXuatHien, { coCotNgayGiao: coTruongNgayGiao })}
   `;
